@@ -91,7 +91,11 @@ header a:hover::before, header button:hover::before, .hud-hover:hover::before {
 .logo { font-family: var(--font-sans); font-weight: 800; }
 .logo em { font-style: normal; color: var(--label-3); }
 nav { display: flex; gap: .25rem; }
-@media (max-width: 40rem) { nav a { display: none; } }
+@media (max-width: 40rem) {                       /* 窄屏:导航保留,整体紧凑化 */
+  .logo em { display: none; }
+  header { padding: .75rem .5rem; }
+  header a, header button { font-size: .72rem; padding: .5rem .3rem; }
+}
 
 .hud-bottom {
   position: fixed; inset: auto 0 0 0; z-index: 50;
@@ -113,7 +117,7 @@ nav { display: flex; gap: .25rem; }
 }
 #fluid, #dots, #glow { position: absolute; inset: 0; z-index: 0; }
 #fluid, #glow { pointer-events: none; }
-#fluid { width: 100%; height: 100%; }
+#fluid, #dots { width: 100%; height: 100%; }   /* canvas 是替换元素,仅 inset:0 不拉伸,需显式尺寸 */
 .hero > * { position: relative; z-index: 1; }
 
 .hero-meta {
@@ -1046,6 +1050,8 @@ if (reduced) requestAnimationFrame(frame);
 (function initGallery() {
   const cards = [...document.querySelectorAll('.gcard')];
   if (!cards.length) return;
+  const touch = matchMedia('(hover: none)').matches;
+  let closeOpen = null;                // 触屏:当前翻开卡片的"翻回"函数
   const CELL = 20;                     // 像素方块边长(CSS px)
   const loadImg = src => new Promise(res => {
     const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src;
@@ -1112,9 +1118,22 @@ if (reduced) requestAnimationFrame(frame);
     }
     const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
 
-    if (!reduced) {
-      card.addEventListener('pointerenter', () => { target = 1; kick(); });
-      card.addEventListener('pointerleave', () => { target = 0; kick(); });
+    const setT = v => { if (reduced) { hp = target = v; render(v); } else { target = v; kick(); } };
+    if (!touch) {
+      if (!reduced) {
+        card.addEventListener('pointerenter', () => setT(1));
+        card.addEventListener('pointerleave', () => setT(0));
+      }
+    } else {
+      /* 触屏无悬停:第一次点按翻面(拦截跳转),已翻开再点按才走链接;翻开新卡时旧卡翻回 */
+      const flipBack = () => setT(0);
+      card.addEventListener('click', e => {
+        if (target < 0.5) {
+          e.preventDefault();
+          if (closeOpen && closeOpen !== flipBack) closeOpen();
+          setT(1); closeOpen = flipBack;
+        }
+      });
     }
     new ResizeObserver(resize).observe(cv);
     resize();
