@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anybody:wght@700;800;900&display=swap">
+<style>
+  :root{
+    --ground:#0c0e0e; --ink:#e7eae9; --muted:#828b88; --faint:#4b524f;
+    --line:rgba(231,234,233,.10); --accent:#00e5a0; --accent-dim:rgba(0,229,160,.5); --track:#1a1f1e;
+    --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
+    --display:"Anybody",system-ui,sans-serif;
+    --serif:"Songti SC","Noto Serif SC",Georgia,serif;
+  }
+  *{box-sizing:border-box;margin:0}
+  html,body{background:var(--ground)}
+  body{width:1200px;height:750px;overflow:hidden}
+  body.sq{width:900px;height:900px}
+  body.port{width:900px;height:1310px}
+  .card{ display:none; }
+  .card.on{ display:flex; }
+  .card{
+    container-type:inline-size; position:relative; width:1200px; height:750px;
+    background:var(--ground); color:var(--ink);
+    flex-direction:column; justify-content:space-between; padding:5.33cqw;
+    font-family:var(--mono);
+  }
+  .card.sq{ width:900px; height:900px; padding:7cqw; }
+  .card.sq .eyebrow,.card.sq .id{ font-size:2.4cqw; }
+  .card.sq .htext{ font-size:9cqw; }
+  .card.sq .fact .k{ font-size:2cqw; }
+  .card.sq .fact .v{ font-size:3.2cqw; }
+  .card.sq .foot .l{ font-size:2.6cqw; }
+  .card.sq .foot .r{ font-size:2.2cqw; }
+  .card.sq .facts{ gap:3.6cqw; }
+  /* portrait (journal) cards */
+  .card.port{ width:900px; height:1310px; padding:8cqw; }
+  .card.port .eyebrow,.card.port .id{ font-size:2.2cqw; }
+  .mast{ display:flex; flex-direction:column; gap:1.6cqw; }
+  .mast .cn{ font-family:var(--serif); font-weight:700; font-size:8.4cqw; line-height:1.02; color:var(--ink); letter-spacing:.02em; }
+  .mast .en{ font-size:2.5cqw; letter-spacing:.06em; color:var(--muted); text-transform:uppercase; }
+  .mast .meta{ font-size:2.2cqw; color:var(--faint); letter-spacing:.04em; margin-top:1cqw; }
+  .paper{ display:flex; flex-direction:column; gap:2cqw; border-top:1px solid var(--line); padding-top:5cqw; }
+  .paper .pt{ font-size:3.6cqw; line-height:1.28; color:var(--ink); }
+  .paper .pt em{ font-style:normal; color:var(--accent); }
+  .paper .pa{ font-size:2.3cqw; color:var(--muted); line-height:1.5; }
+  .plist{ display:flex; flex-direction:column; flex:1; justify-content:center; }
+  .pitem{ display:grid; grid-template-columns:auto 1fr auto; gap:.6cqw 3cqw; padding:4cqw 0; border-top:1px solid var(--line); }
+  .pitem:last-child{ border-bottom:1px solid var(--line); }
+  .pitem .yr{ grid-row:1 / span 2; font-size:3cqw; color:var(--accent); font-variant-numeric:tabular-nums; align-self:start; }
+  .pitem .ti{ grid-column:2; font-size:3.5cqw; color:var(--ink); line-height:1.24; }
+  .pitem .jr{ grid-column:2; font-size:2.4cqw; color:var(--faint); }
+  .pitem .lk{ grid-column:3; grid-row:1 / span 2; align-self:center; font-size:3.4cqw; color:var(--accent); }
+  .pitem .lk.no{ color:var(--faint); font-size:2.4cqw; }
+  .card.port .foot .l{ font-size:2.4cqw; }
+  .card.port .foot .r{ font-size:2.2cqw; }
+  .bignum{ font-family:var(--display); font-weight:800; font-size:20cqw; line-height:.86; letter-spacing:-.03em; color:var(--accent); }
+  .biglab{ font-size:2.6cqw; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:2cqw; }
+  .row{ display:flex; justify-content:space-between; align-items:baseline; }
+  .eyebrow{ font-size:1.83cqw; letter-spacing:.12em; text-transform:uppercase; color:var(--accent); }
+  .id{ font-size:1.83cqw; letter-spacing:.06em; color:var(--faint); }
+  .hero{ display:flex; flex-direction:column; }
+  .hero .num{ font-family:var(--display); font-weight:800; font-size:13cqw; line-height:.9; letter-spacing:-.02em; color:var(--accent); }
+  .hero .lab{ font-size:1.83cqw; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-top:1cqw; }
+  .data{ display:flex; flex-direction:column; gap:2.4cqw; }
+  .drow{ display:grid; grid-template-columns:1fr; gap:1cqw; }
+  .drow .dtop{ display:flex; justify-content:space-between; align-items:baseline; }
+  .drow .dname{ font-size:2cqw; color:var(--ink); }
+  .drow .dval{ font-family:var(--display); font-weight:700; font-size:2.6cqw; color:var(--accent); font-variant-numeric:tabular-nums; }
+  .drow.sub .dval{ color:var(--accent-dim); }
+  .bar{ height:1.5cqw; border-radius:.4cqw; background:var(--track); overflow:hidden; }
+  .bar i{ display:block; height:100%; background:var(--accent); border-radius:.4cqw; }
+  .drow.sub .bar i{ background:var(--accent-dim); }
+  .foot{ display:flex; justify-content:space-between; align-items:baseline; border-top:1px solid var(--line); padding-top:2.4cqw; }
+  .foot .l{ font-size:2cqw; color:var(--ink); }
+  .foot .r{ font-size:1.66cqw; color:var(--faint); }
+  .mech{ display:grid; grid-template-columns:1.05fr 1fr; gap:5cqw; align-items:center; flex:1; }
+  .diagram{ width:100%; height:auto; }
+  .facts{ display:flex; flex-direction:column; gap:2.6cqw; }
+  .fact{ display:flex; flex-direction:column; gap:.5cqw; }
+  .fact .k{ font-size:1.5cqw; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); }
+  .fact .v{ font-size:2.4cqw; color:var(--ink); line-height:1.15; }
+  .fact .v em{ font-style:normal; color:var(--accent); }
+  .htext{ font-family:var(--display); font-weight:800; font-size:9cqw; line-height:.92; letter-spacing:-.02em; color:var(--ink); }
+  .htext em{ font-style:normal; color:var(--accent); }
+  .facts.grid2{ display:grid; grid-template-columns:1fr 1fr; gap:2.6cqw 4cqw; }
+</style>
+</head>
+<body>
+  <!-- glum-front -->
+  <div class="card" data-c="glum-front">
+    <div class="row"><span class="eyebrow">GLORY · Phase II</span><span class="id">NCT04270591</span></div>
+    <div class="hero"><span class="num">65.8%</span><span class="lab">Confirmed ORR · blinded independent review</span></div>
+    <div class="data">
+      <div class="drow"><div class="dtop"><span class="dname">Treatment-naïve</span><span class="dval">70.5%</span></div><div class="bar"><i style="width:70.5%"></i></div></div>
+      <div class="drow sub"><div class="dtop"><span class="dname">Previously treated</span><span class="dval">60.0%</span></div><div class="bar"><i style="width:60%"></i></div></div>
+    </div>
+    <div class="foot"><span class="l">Glumetinib · Haihe Biopharma</span><span class="r">NMPA approved 2023</span></div>
+  </div>
+
+  <!-- glum-back -->
+  <div class="card" data-c="glum-back">
+    <div class="row"><span class="eyebrow">Mechanism · MET inhibitor</span><span class="id">SCC244</span></div>
+    <div class="mech">
+      <svg class="diagram" viewBox="0 0 300 300" fill="none" aria-hidden="true">
+        <text x="0" y="86" fill="#4b524f" font-family="ui-monospace,monospace" font-size="9" letter-spacing="1.5">EXTRACELLULAR</text>
+        <ellipse cx="150" cy="46" rx="46" ry="22" stroke="#828b88" stroke-width="2"/>
+        <text x="150" y="50" fill="#828b88" font-family="ui-monospace,monospace" font-size="11" text-anchor="middle" letter-spacing="1">HGF</text>
+        <line x1="150" y1="100" x2="300" y2="100" stroke="rgba(231,234,233,.12)" stroke-width="1.5"/>
+        <line x1="150" y1="122" x2="300" y2="122" stroke="rgba(231,234,233,.12)" stroke-width="1.5"/>
+        <line x1="132" y1="68" x2="132" y2="176" stroke="#dfe3e1" stroke-width="6" stroke-linecap="round"/>
+        <line x1="168" y1="68" x2="168" y2="176" stroke="#dfe3e1" stroke-width="6" stroke-linecap="round"/>
+        <text x="182" y="150" fill="#828b88" font-family="ui-monospace,monospace" font-size="10" letter-spacing="1">MET</text>
+        <rect x="112" y="176" width="76" height="58" rx="8" stroke="#828b88" stroke-width="2"/>
+        <polygon points="150,192 168,202 168,222 150,232 132,222 132,202" fill="#00e5a0"/>
+        <line x1="150" y1="234" x2="150" y2="262" stroke="#00e5a0" stroke-width="2.5" stroke-dasharray="3 5"/>
+        <line x1="140" y1="272" x2="160" y2="292" stroke="#00e5a0" stroke-width="2.5"/>
+        <line x1="160" y1="272" x2="140" y2="292" stroke="#00e5a0" stroke-width="2.5"/>
+        <text x="0" y="240" fill="#4b524f" font-family="ui-monospace,monospace" font-size="9" letter-spacing="1.5">CYTOPLASM</text>
+      </svg>
+      <div class="facts">
+        <div class="fact"><span class="k">Target</span><span class="v">MET / c-Met receptor <em>tyrosine kinase</em></span></div>
+        <div class="fact"><span class="k">Class</span><span class="v">Oral, highly selective small-molecule inhibitor</span></div>
+        <div class="fact"><span class="k">Indication</span><span class="v">NSCLC with <em>MET exon 14</em> skipping</span></div>
+        <div class="fact"><span class="k">Action</span><span class="v">Blocks kinase signalling downstream of HGF</span></div>
+      </div>
+    </div>
+    <div class="foot"><span class="l">Glumetinib · NSCLC (METex14)</span><span class="r">Haihe Biopharma / SIMM</span></div>
+  </div>
+
+  <!-- brew-back -->
+  <div class="card" data-c="brew-back">
+    <div class="row"><span class="eyebrow">iOS · TestFlight beta</span><span class="id">brewscience.win</span></div>
+    <div class="hero"><span class="htext">10 tools,<br><em>one box</em></span></div>
+    <div class="facts grid2">
+      <div class="fact"><span class="k">01 · Brew math</span><span class="v">Extraction &amp; ratio solver</span></div>
+      <div class="fact"><span class="k">02 · Timers</span><span class="v">Pour choreography</span></div>
+      <div class="fact"><span class="k">03 · Water lab</span><span class="v">Grinder conversion</span></div>
+      <div class="fact"><span class="k">04 · Analysis</span><span class="v">Particle &amp; tasting cards</span></div>
+    </div>
+    <div class="foot"><span class="l">Instruments, not a journal.</span><span class="r">Open-source framework</span></div>
+  </div>
+
+  <!-- nomad-back -->
+  <div class="card" data-c="nomad-back">
+    <div class="row"><span class="eyebrow">Web · live</span><span class="id">nomadlink.io</span></div>
+    <div class="hero"><span class="num">190+</span><span class="lab">Destinations · travel eSIM, instant QR</span></div>
+    <div class="facts grid2">
+      <div class="fact"><span class="k">Delivery</span><span class="v">Instant QR — online the moment you land</span></div>
+      <div class="fact"><span class="k">Number</span><span class="v">Data-only, keep your own number</span></div>
+      <div class="fact"><span class="k">No swap</span><span class="v">No physical SIM, no roaming bills</span></div>
+      <div class="fact"><span class="k">AI-ready</span><span class="v">Works with ChatGPT / Gemini apps</span></div>
+    </div>
+    <div class="foot"><span class="l">Stay connected the moment you land.</span><span class="r">Built &amp; shipped end-to-end</span></div>
+  </div>
+
+  <!-- podcast-lswg-back (square) -->
+  <div class="card sq" data-c="podcast-lswg-back">
+    <div class="row"><span class="eyebrow">On air · guest</span><span class="id">2023</span></div>
+    <div class="hero"><span class="htext">Back to school<br><em>at thirty</em></span></div>
+    <div class="facts">
+      <div class="fact"><span class="k">Show</span><span class="v">李叔叔AND王阿姨 · Ep.59</span></div>
+      <div class="fact"><span class="k">Role</span><span class="v">Guest</span></div>
+      <div class="fact"><span class="k">Topic</span><span class="v">Going abroad to study, again — at 30</span></div>
+    </div>
+    <div class="foot"><span class="l">李叔叔AND王阿姨</span><span class="r">Listen ↗</span></div>
+  </div>
+
+  <!-- podcast-wwzn-back (square) -->
+  <div class="card sq" data-c="podcast-wwzn-back">
+    <div class="row"><span class="eyebrow">On air · guest host</span><span class="id">2016</span></div>
+    <div class="hero"><span class="htext">A tour through<br><em>Chinese sitcoms</em></span></div>
+    <div class="facts">
+      <div class="fact"><span class="k">Show</span><span class="v">万误指南 · Vol.03</span></div>
+      <div class="fact"><span class="k">Role</span><span class="v">Guest host</span></div>
+      <div class="fact"><span class="k">Topic</span><span class="v">Summarising Chinese situation comedy</span></div>
+    </div>
+    <div class="foot"><span class="l">万误指南</span><span class="r">Listen ↗</span></div>
+  </div>
+
+  <!-- research-single-front (portrait journal masthead, one paper) -->
+  <div class="card port" data-c="research-single-front">
+    <div class="row"><span class="eyebrow">Peer-reviewed · 2015</span><span class="id">ISSN 1006-1703</span></div>
+    <div class="mast">
+      <span class="cn">标记免疫<br>分析与临床</span>
+      <span class="en">Labeled Immunoassays &amp; Clinical Medicine</span>
+      <span class="meta">Vol.22 · No.11 · pp.1082–1085 · 2015</span>
+    </div>
+    <div class="paper">
+      <span class="pt">Diagnostic performance of <em>MNV and PCT</em> in cerebral-hemorrhage coma patients with septicemia</span>
+      <span class="pa">LI Xin-ling, CAO Xing-jian, ZHU Yi-hua, FAN Yu-ping, <b style="color:var(--ink);font-weight:600">YANG Yi</b></span>
+    </div>
+    <div class="foot"><span class="l">中国同辐 · China Isotope &amp; Radiation</span><span class="r">Read ↗</span></div>
+  </div>
+
+  <!-- research-single-back (portrait citation) -->
+  <div class="card port" data-c="research-single-back">
+    <div class="row"><span class="eyebrow">Citation</span><span class="id">DOI 10.11748/…</span></div>
+    <div class="mast">
+      <span class="bignum">2015</span>
+      <span class="biglab">First-author-team laboratory study</span>
+    </div>
+    <div class="facts" style="gap:4cqw">
+      <div class="fact"><span class="k">Finding</span><span class="v" style="font-size:3cqw;line-height:1.35">Combined MNV + PCT improved detection of septicemia in cerebral-hemorrhage coma patients.</span></div>
+      <div class="fact"><span class="k">Journal</span><span class="v" style="font-size:2.7cqw">标记免疫分析与临床 · 22(11):1082–1085</span></div>
+      <div class="fact"><span class="k">Authors</span><span class="v" style="font-size:2.4cqw;color:var(--muted)">Li, Cao, Zhu, Fan, <b style="color:var(--ink)">Yang</b></span></div>
+    </div>
+    <div class="foot"><span class="l">Peer-reviewed · clinical laboratory</span><span class="r">bjmyfx.com ↗</span></div>
+  </div>
+
+  <!-- research-all-front (portrait masthead, five papers) -->
+  <div class="card port" data-c="research-all-front">
+    <div class="row"><span class="eyebrow">Peer-reviewed · 2014–2016</span><span class="id">Clinical lab medicine</span></div>
+    <div class="mast">
+      <span class="bignum">5</span>
+      <span class="biglab">Published papers · co-author</span>
+    </div>
+    <div class="paper" style="border-top:none;padding-top:0">
+      <span class="pt">Sepsis biomarkers, coagulation &amp; cell-population parameters — <em>where the evidence habit started.</em></span>
+    </div>
+    <div class="foot"><span class="l">标记免疫分析与临床 · 中华临床医师杂志</span><span class="r">2014–2016</span></div>
+  </div>
+
+  <!-- research-all-back (portrait list of five) -->
+  <div class="card port" data-c="research-all-back">
+    <div class="row"><span class="eyebrow">Publications</span><span class="id">5 papers · YANG Yi</span></div>
+    <div class="plist">
+      <div class="pitem"><span class="yr">2016</span><span class="ti">Neutrophil volume parameters in severe TBI with septicemia</span><span class="jr">Chin J Clinicians · 10(3)</span><span class="lk">↗</span></div>
+      <div class="pitem"><span class="yr">2015</span><span class="ti">MNV + PCT in cerebral-hemorrhage coma with septicemia</span><span class="jr">Labeled Immunoassays · 22(11)</span><span class="lk">↗</span></div>
+      <div class="pitem"><span class="yr">2015</span><span class="ti">hsCRP + sEPCR in arteriovenous-fistula thrombosis</span><span class="jr">Labeled Immunoassays · 22(4)</span><span class="lk">↗</span></div>
+      <div class="pitem"><span class="yr">2014</span><span class="ti">Natriuretic-peptide series in type-2 diabetic nephropathy</span><span class="jr">Labeled Immunoassays · 21(2)</span><span class="lk">↗</span></div>
+      <div class="pitem"><span class="yr">2014</span><span class="ti">Novel lymphocyte-population parameters in viral infection</span><span class="jr">Clinical Lab Journal · 2</span><span class="lk no">—</span></div>
+    </div>
+    <div class="foot"><span class="l">4 of 5 linked · chinadoi.cn</span><span class="r">标记免疫分析与临床</span></div>
+  </div>
+
+  <script>
+    const c = new URLSearchParams(location.search).get('c');
+    const el = document.querySelector(`.card[data-c="${c}"]`);
+    if (el) { el.classList.add('on'); if (el.classList.contains('sq')) document.body.classList.add('sq'); if (el.classList.contains('port')) document.body.classList.add('port'); }
+    document.fonts.ready.then(() => { document.body.dataset.ready = '1'; });
+  </script>
+</body>
+</html>
