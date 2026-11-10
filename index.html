@@ -393,9 +393,10 @@ html.lite .gcard .fallback { display: block; }
   .g-glum { align-self: flex-end; }
 }
 
-/* 页脚大字：三行居中成一组 */
-footer .display { width: 100%; text-align: center; }
-footer .display .r { text-align: center; padding-left: 0; }
+/* 页脚大字：整组居中，组内三行错位 */
+footer .display { width: fit-content; margin-left: auto; margin-right: auto; text-align: left; }
+footer .display .r { text-align: left; padding-left: 1.35em; }
+footer .display span:nth-child(3) { padding-left: .45em; }
 
 /* 宽屏：内容收进约 78rem 的居中版心（所有区块都用 --gutter 做左右边距，改这一处即可） */
 :root { --gutter: max(clamp(1rem, 4vw, 3.5rem), calc((100vw - 78rem) / 2)); }
