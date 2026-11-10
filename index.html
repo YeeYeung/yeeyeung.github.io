@@ -1331,8 +1331,10 @@ void main(){
   const ptr = { x: innerWidth / 2, y: innerHeight / 2, sx: 0.5, sy: 0.5, lx: 0, ly: 0, gx: innerWidth / 2, gy: innerHeight / 2, has: false };
   const trail = Array.from({ length: TRAIL_N }, () => ({ x: -9999, y: -9999, s: 0 }));
   let trailI = 0, trailCell = '';
+  let lastTouch = -1e9;
+  addEventListener('pointerdown', e => { ptr.x = e.clientX; ptr.y = e.clientY; lastTouch = performance.now(); });
   addEventListener('pointermove', e => {
-    ptr.x = e.clientX; ptr.y = e.clientY;
+    ptr.x = e.clientX; ptr.y = e.clientY; lastTouch = performance.now();
     if (!ptr.has) { ptr.lx = ptr.x; ptr.ly = ptr.y; ptr.has = true; }
     if (LITE) return;
     if (coordsEl) coordsEl.textContent = String(e.clientX | 0).padStart(4, '0') + ' X ' + String((innerHeight - e.clientY) | 0).padStart(4, '0') + ' Y';
@@ -1382,6 +1384,13 @@ void main(){
     if (VIRT) stagePin.style.transform = `translate3d(0,${clamp(sy - stTop, 0, pinSpan)}px,0)`;
     curl = damp(curl, clamp(Math.abs(sy - prevSy) / dt / 9000, 0, 0.30), 5, dt);
     curlU.value = curl;
+
+    /* 触屏没有鼠标：让「指针」随滚动位置游走（点按后先停留在手指处 1.5 秒） */
+    if (LITE && now - lastTouch > 1500) {
+      const u = sy / Math.max(1, H);
+      ptr.x = W * (0.5 + 0.38 * Math.sin(u * 3.2 + 0.6) + 0.04 * Math.sin(time * 0.5));
+      ptr.y = H * (0.48 + 0.30 * Math.cos(u * 2.3) + 0.03 * Math.cos(time * 0.37));
+    }
 
     /* 指针平滑、光源 */
     ptr.sx = damp(ptr.sx, ptr.x / W, 5, dt); ptr.sy = damp(ptr.sy, 1 - ptr.y / H, 5, dt);
