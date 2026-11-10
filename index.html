@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yi Yang (Yee Yeung) — Life is an n-of-1 trial</title>
-<meta name="description" content="Clinical research physician & developer. Medicine by training, data by degree, code by choice. Builder of Brew Science and NomadLink.">
+<meta name="description" content="Clinical research physician & developer. Medicine by training, data by degree, code by choice. Builder of Brew Science and TooLite.">
 <meta property="og:title" content="Yi Yang (Yee Yeung) — Life is an n-of-1 trial">
 <meta property="og:description" content="Medicine by training. Data by degree. Code by choice.">
 <meta property="og:type" content="website">
@@ -324,9 +324,52 @@ footer .display .r { text-align: right; }
   text-transform: uppercase; letter-spacing: .04em;
 }
 .contact .group { display: flex; flex-wrap: wrap; gap: .25rem 1rem; }
+
+/* ============ v3：单画布管线（three.js）覆盖层 ============ */
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: none; pointer-events: none; }
+html.gl #gl { display: block; }
+#scroll { position: relative; z-index: 1; }
+html.virt #scroll { position: fixed; top: 0; left: 0; width: 100%; will-change: transform; }
+html.gl body { transition: none; }
+
+#glass-home { position: absolute; right: 5%; top: 16%; width: 52vw; height: 50vh; pointer-events: none; z-index: 0; }
+#caret-home { position: absolute; right: 11%; bottom: 16%; width: 46px; height: 84px; pointer-events: none; z-index: 0; }
+@media (max-width: 52rem) {
+  #glass-home { left: 10%; right: 22%; width: auto; top: 51%; height: 17vh; }
+  #caret-home { right: 9%; top: 57%; bottom: auto; width: 26px; height: 48px; }
+}
+
+/* 画廊图片由主画布绘制；DOM 槽只负责占位、边框和标签 */
+html.gl .gcard .stage { background: transparent; }
+html.js:not(.gl) .gcard .fallback { display: block; }
+.gcard { transform: none; }
+
+/* 宣言区：方块光标放大吞屏 → 星流 → 缩回提示符 */
+.statement { height: 460vh; }
+.stage-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; text-align: center; overflow: hidden; }
+html.virt .stage-pin { position: absolute; left: 0; width: 100%; height: 100vh; will-change: transform; }
+.stage-pin > * { grid-area: 1 / 1; }
+#st-title { opacity: 0; color: #fff; padding: 0 var(--gutter); }
+.prompt { opacity: 0; white-space: nowrap; font-family: var(--font-mono); font-size: clamp(1rem, 2.2vw, 1.5rem); letter-spacing: .05em; color: var(--label-1); transition: color .25s; }
+.prompt .pfx { color: var(--accent); }
+#caret-end { display: inline-block; width: .62em; height: 1.15em; margin-left: .12em; vertical-align: text-bottom; }
+html.in-portal .prompt { color: #fff; }
+html.in-portal header, html.in-portal .hud-bottom { color: #fff; --label-1: #fff; --label-2: rgba(255,255,255,.62); --label-3: rgba(255,255,255,.34); }
+
+/* 无 WebGL / 减弱动效：静态版 */
+html:not(.gl) .statement { height: auto; }
+html:not(.gl) .stage-pin { position: static; height: auto; min-height: 60vh; gap: 2rem; align-content: center; }
+html:not(.gl) .stage-pin > * { grid-area: auto; }
+html:not(.gl) #st-title { opacity: 1; color: var(--label-1); }
+html:not(.gl) .prompt { opacity: 1; }
+html:not(.gl) #caret-end { background: var(--accent); }
+
+@media (max-width: 48rem) { .hud-bottom .geo { display: none; } }
 </style>
 </head>
 <body>
+
+<canvas id="gl" aria-hidden="true"></canvas>
 
 <header>
   <a class="logo" href="#">YEEYEUNG<em>.github.io</em></a>
@@ -338,15 +381,15 @@ footer .display .r { text-align: right; }
   </nav>
 </header>
 
+<div id="scroll">
 <main>
   <section class="hero">
-    <canvas id="fluid" aria-hidden="true"></canvas>
-    <canvas id="dots" aria-hidden="true"></canvas>
-    <div id="glow" aria-hidden="true"></div>
+    <div id="glass-home" aria-hidden="true"></div>
+    <div id="caret-home" aria-hidden="true"></div>
     <div class="hero-meta">
       <span class="title reveal">Medicine &amp;<br>Engineering</span>
       <span class="tagline reveal" style="--d:.08s">Medicine by training. Data by degree. Code by choice.</span>
-      <p class="bio reveal" style="--d:.16s">I'm Yi Yang (Yee Yeung), a clinical research physician &amp; developer. I work in clinical research, and build products like <a href="https://brewscience.win" target="_blank" rel="noopener">Brew Science</a> and <a href="https://nomadlink.io" target="_blank" rel="noopener">NomadLink</a> — because rigor is a habit, not a job description.</p>
+      <p class="bio reveal" style="--d:.16s">I'm Yi Yang (Yee Yeung), a clinical research physician &amp; developer. I work in clinical research, and build products like <a href="https://brewscience.win" target="_blank" rel="noopener">Brew Science</a> and <a href="https://toolite.win" target="_blank" rel="noopener">TooLite</a> — because rigor is a habit, not a job description.</p>
     </div>
     <h1 class="display lit">
       <span class="reveal" style="--d:.2s">Life is</span><br>
@@ -358,24 +401,22 @@ footer .display .r { text-align: right; }
   <div class="sec-head" id="selected"><span>Selected work — code, coffee, air, clinic</span></div>
   <section class="gallery">
     <div class="gcol">
-      <figure class="gcard" data-front="assets/brew-front.png" data-hover="assets/brew-hover.png">
+      <figure class="gcard" data-front="assets/brew-site-front.png" data-hover="assets/brew-site-hover.png">
         <a href="https://brewscience.win" target="_blank" rel="noopener">
           <div class="stage">
             <span class="tag">iOS app</span>
-            <img class="fallback" src="assets/brew-front.png" alt="Brew Science app">
-            <canvas aria-hidden="true"></canvas>
+            <img class="fallback" src="assets/brew-site-front.png" alt="Brew Science website">
           </div>
-          <div class="cap"><span class="gname">Brew Science<span class="gsub">Coffee, quantified — TestFlight public beta</span></span><span class="gmeta">2025– ↗</span></div>
+          <div class="cap"><span class="gname">Brew Science<span class="gsub">Coffee, quantified — on the App Store</span></span><span class="gmeta">2025– ↗</span></div>
         </a>
       </figure>
-      <figure class="gcard" data-front="assets/nomadlink-front.png" data-hover="assets/nomad-hover.png">
-        <a href="https://nomadlink.io" target="_blank" rel="noopener">
+      <figure class="gcard" data-front="assets/toolite-site-front.png" data-hover="assets/toolite-site-hover.png">
+        <a href="https://toolite.win" target="_blank" rel="noopener">
           <div class="stage">
-            <span class="tag">Web · live</span>
-            <img class="fallback" src="assets/nomadlink-front.png" alt="NomadLink travel eSIM">
-            <canvas aria-hidden="true"></canvas>
+            <span class="tag">iOS app</span>
+            <img class="fallback" src="assets/toolite-site-front.png" alt="TooLite website">
           </div>
-          <div class="cap"><span class="gname">NomadLink<span class="gsub">Travel eSIMs for 190+ destinations</span></span><span class="gmeta">Live ↗</span></div>
+          <div class="cap"><span class="gname">TooLite<span class="gsub">Ultralight pack lists for hikers</span></span><span class="gmeta">2026 ↗</span></div>
         </a>
       </figure>
       <figure class="gcard" data-front="assets/journal-cover.jpg" data-hover="assets/research-all-hover.png">
@@ -383,7 +424,6 @@ footer .display .r { text-align: right; }
           <div class="stage">
             <span class="tag">Research</span>
             <img class="fallback" src="assets/journal-cover.jpg" alt="标记免疫分析与临床 journal cover">
-            <canvas aria-hidden="true"></canvas>
           </div>
           <div class="cap"><span class="gname">Publications<span class="gsub">Five peer-reviewed papers · 2014–2016</span></span><span class="gmeta">4 linked ↗</span></div>
         </a>
@@ -395,7 +435,6 @@ footer .display .r { text-align: right; }
           <div class="stage">
             <span class="tag">On air · guest</span>
             <img class="fallback" src="assets/podcast-lswg.jpg" alt="李叔叔AND王阿姨 podcast, Ep.59">
-            <canvas aria-hidden="true"></canvas>
           </div>
           <div class="cap"><span class="gname">Back to school at 30<span class="gsub">李叔叔AND王阿姨 · Ep.59 · guest</span></span><span class="gmeta">Listen ↗</span></div>
         </a>
@@ -405,7 +444,6 @@ footer .display .r { text-align: right; }
           <div class="stage">
             <span class="tag">On air · guest host</span>
             <img class="fallback" src="assets/podcast-wwzn.jpg" alt="万误指南 podcast, Vol.03">
-            <canvas aria-hidden="true"></canvas>
           </div>
           <div class="cap"><span class="gname">Chinese sitcoms, toured<span class="gsub">万误指南 · Vol.03 · guest host</span></span><span class="gmeta">Listen ↗</span></div>
         </a>
@@ -415,7 +453,6 @@ footer .display .r { text-align: right; }
           <div class="stage">
             <span class="tag">Clinical research</span>
             <img class="fallback" src="assets/glumetinib-orr.png" alt="Glumetinib GLORY trial — 65.8% confirmed ORR">
-            <canvas aria-hidden="true"></canvas>
           </div>
           <div class="cap"><span class="gname">Glumetinib<span class="gsub">Clinical research — from first-in-patient to NDA</span></span><span class="gmeta">NMPA 2023 ↗</span></div>
         </a>
@@ -429,19 +466,13 @@ footer .display .r { text-align: right; }
       <span class="no">iOS app</span>
       <span class="iname">Brew Science</span>
       <span class="iyear">2025– ↗</span>
-      <span class="idesc">Coffee, quantified — brewing toolkit on TestFlight public beta.</span>
+      <span class="idesc">Coffee, quantified — a brewing toolkit, on the App Store.</span>
     </a>
-    <a class="irow reveal" href="https://nomadlink.io" target="_blank" rel="noopener">
-      <span class="no">Web</span>
-      <span class="iname">NomadLink</span>
-      <span class="iyear">Live ↗</span>
-      <span class="idesc">Travel eSIMs for 190+ destinations — instant QR delivery, keep your number.</span>
-    </a>
-    <a class="irow reveal" href="https://github.com/YeeYeung/brew-science-framework" target="_blank" rel="noopener">
-      <span class="no">OSS</span>
-      <span class="iname">BS Framework</span>
+    <a class="irow reveal" href="https://toolite.win" target="_blank" rel="noopener">
+      <span class="no">iOS app</span>
+      <span class="iname">TooLite</span>
       <span class="iyear">2026 ↗</span>
-      <span class="idesc">Zero-transform design tokens &amp; portable component core, TypeScript.</span>
+      <span class="idesc">Ultralight pack lists for hikers — base weight, QR-code sharing, no subscription.</span>
     </a>
     <a class="irow reveal" href="https://github.com/YeeYeung/ZomatoPredictiveModels" target="_blank" rel="noopener">
       <span class="no">Data</span>
@@ -551,13 +582,10 @@ footer .display .r { text-align: right; }
     </a>
   </section>
 
-  <section class="statement" id="scene-section">
-    <div class="scene-stage">
-      <canvas id="scene" aria-hidden="true"></canvas>
-      <div class="scene-text">
-        <p class="display lit sc-warp">The experiment continues</p>
-        <p class="sc-prompt" aria-label="second opinions welcome"><span class="pfx">&gt;&nbsp;</span><span class="sc-pline"></span><span class="caret" aria-hidden="true"></span></p>
-      </div>
+  <section class="statement" id="statement">
+    <div class="stage-pin" id="stage-pin">
+      <p class="display" id="st-title">The experiment continues</p>
+      <p class="prompt" id="prompt" aria-label="second opinions welcome"><span class="pfx">&gt;&nbsp;</span><span id="pline"></span><span id="caret-end" aria-hidden="true"></span></p>
     </div>
   </section>
 </main>
@@ -574,25 +602,31 @@ footer .display .r { text-align: right; }
     <span class="group">
       <a class="hud-hover" href="https://github.com/YeeYeung" target="_blank" rel="noopener">GitHub</a>
       <a class="hud-hover" href="https://brewscience.win" target="_blank" rel="noopener">Brew Science</a>
-      <a class="hud-hover" href="https://nomadlink.io" target="_blank" rel="noopener">NomadLink</a>
+      <a class="hud-hover" href="https://toolite.win" target="_blank" rel="noopener">TooLite</a>
     </span>
   </div>
 </footer>
+</div>
 
 <div class="hud-bottom">
-  <span id="clock">GMT+8 CN --:--</span>
+  <span><span id="clock">CBR GMT+11 --:--</span><span class="geo"> · 35.28°S 149.13°E</span></span>
   <span id="coords" aria-hidden="true">0000 X 0000 Y</span>
   <span>MD × MPH × MITS · © 2026</span>
 </div>
 
-<script>
-document.documentElement.classList.add('js');
+<script type="module">
+import * as THREE from './vendor/three.module.min.js';
+
+const root = document.documentElement;
+root.classList.add('js');
 
 /* ---- HUD 时钟 ---- */
 const clock = document.getElementById('clock');
+const clockFmt = new Intl.DateTimeFormat('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Australia/Sydney', timeZoneName: 'shortOffset' });
 const tick = () => {
-  const t = new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai' });
-  clock.textContent = `GMT+8 CN ${t}`;
+  const parts = clockFmt.formatToParts(new Date());
+  const get = t => (parts.find(p => p.type === t) || {}).value || '';
+  clock.textContent = `CBR ${get('timeZoneName')} ${get('hour')}:${get('minute')}`;   // 夏令时自动在 GMT+10 / GMT+11 间切换
 };
 tick(); setInterval(tick, 30_000);
 
@@ -600,652 +634,707 @@ tick(); setInterval(tick, 30_000);
 const themeBtn = document.getElementById('theme');
 const modes = [null, 'dark', 'light'];
 let mode = Math.max(0, modes.indexOf(localStorage.getItem('theme')));
+let themeDirty = true;
 const applyTheme = () => {
   const m = modes[mode];
-  if (m) { document.documentElement.dataset.theme = m; localStorage.setItem('theme', m); }
-  else   { delete document.documentElement.dataset.theme; localStorage.removeItem('theme'); }
+  if (m) { root.dataset.theme = m; localStorage.setItem('theme', m); }
+  else   { delete root.dataset.theme; localStorage.removeItem('theme'); }
   themeBtn.textContent = `THEME[${m ? m[0].toUpperCase() : 'A'}]`;
+  themeDirty = true;
 };
 themeBtn.addEventListener('click', () => { mode = (mode + 1) % 3; applyTheme(); });
 applyTheme();
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { themeDirty = true; });
 
 /* ---- 入场动画 ---- */
 const io = new IntersectionObserver(es => es.forEach(e => {
   if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
 }), { threshold: 0.15 });
-document.querySelectorAll('.reveal, .ecg').forEach(el => io.observe(el));
+document.querySelectorAll('.reveal').forEach(el => io.observe(el));
 
-/* ============================================================
-   ② Scramble 文字（逆向自 haoqi 的 ScrambleText：letterDelay 逐字错开、
-   乱跳字符闪强调色、进视口触发一次）。每字符一个 span、只写 textContent,
-   不用 innerHTML；只打乱字母/数字,空格与标点保持可读。
-   ============================================================ */
+/* ---- Scramble 文字：逐字错开落定，乱跳字符闪强调色 ---- */
+const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SCR_CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789#%<>/*';
 function scramble(el, { letterDelay = 42, scrambleTime = 240 } = {}) {
   const text = el.dataset.stext || el.textContent;
   el.dataset.stext = text;
   el.textContent = '';
-  const spans = [...text].map(ch => {
-    const sp = document.createElement('span'); sp.textContent = ch; el.appendChild(sp); return sp;
-  });
+  const spans = [...text].map(ch => { const sp = document.createElement('span'); sp.textContent = ch; el.appendChild(sp); return sp; });
   const t0 = performance.now();
   function frame(now) {
-    const dt = now - t0;
-    let settled = true;
+    const dt = now - t0; let settled = true;
     for (let i = 0; i < spans.length; i++) {
       const ch = text[i];
       if (!/[A-Za-z0-9]/.test(ch)) continue;
       const sp = spans[i];
-      if (dt < i * letterDelay + scrambleTime) {   // 从头一起乱跳,逐字左→右落定
-        sp.textContent = SCR_CHARS[Math.random() * SCR_CHARS.length | 0]; sp.className = 'scr'; settled = false;
-      } else if (sp.className) { sp.textContent = ch; sp.className = ''; }
+      if (dt < i * letterDelay + scrambleTime) { sp.textContent = SCR_CHARS[Math.random() * SCR_CHARS.length | 0]; sp.className = 'scr'; settled = false; }
+      else if (sp.className) { sp.textContent = ch; sp.className = ''; }
     }
     if (settled) el.textContent = text; else requestAnimationFrame(frame);
   }
   requestAnimationFrame(frame);
 }
-if (!matchMedia('(prefers-reduced-motion: reduce)').matches) {
+if (!reduced) {
   const scrIO = new IntersectionObserver(es => es.forEach(e => {
     if (e.isIntersecting) { scramble(e.target); scrIO.unobserve(e.target); }
   }), { threshold: 0.6 });
   document.querySelectorAll('.sec-head span').forEach(el => scrIO.observe(el));
 }
 
-/* ============================================================
-   真·流体模拟（Navier-Stokes, WebGL2, 零依赖 ≈260 行）
-   管线：advect velocity → curl → vorticity confinement →
-         divergence → pressure(Jacobi) → gradient subtract →
-         advect dye → display
-   染料单通道,显示时用主题强调色着色。WebGL2 不可用时返回 null，
-   外层自动回退到 CSS 光晕。
-   ============================================================ */
-function createFluid(canvas) {
-  const gl = canvas.getContext('webgl2', { alpha: true, depth: false, stencil: false, antialias: false, premultipliedAlpha: true });
-  if (!gl || !gl.getExtension('EXT_color_buffer_float')) return null;
+/* ---- 公共小工具 ---- */
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const sstep = (a, b, x) => { const t = clamp((x - a) / (b - a), 0, 1); return t * t * (3 - 2 * t); };
+const damp = (a, b, l, dt) => a + (b - a) * (1 - Math.exp(-l * dt));
+const mix = (a, b, t) => a + (b - a) * t;
+const PROMPT = 'second opinions welcome';
+const fine = matchMedia('(hover: hover) and (pointer: fine)').matches;
 
-  const VERT = `#version 300 es
-    in vec2 aPos; out vec2 vUv; out vec2 vL; out vec2 vR; out vec2 vT; out vec2 vB;
-    uniform vec2 uTexel;
-    void main(){ vUv = aPos*0.5+0.5; vL=vUv-vec2(uTexel.x,0.); vR=vUv+vec2(uTexel.x,0.);
-      vT=vUv+vec2(0.,uTexel.y); vB=vUv-vec2(0.,uTexel.y); gl_Position=vec4(aPos,0.,1.); }`;
-
-  const FRAGS = {
-    advect: `uniform sampler2D uVelocity; uniform sampler2D uSource; uniform vec2 uTexel;
-      uniform float uDt; uniform float uDissipation;
-      void main(){ vec2 coord = vUv - uDt * texture(uVelocity, vUv).xy * uTexel;
-        outColor = texture(uSource, coord) / (1.0 + uDissipation * uDt); }`,
-    splat: `uniform sampler2D uTarget; uniform float uAspect; uniform vec2 uPoint;
-      uniform vec3 uValue; uniform float uRadius;
-      void main(){ vec2 p = vUv - uPoint; p.x *= uAspect;
-        vec3 splat = exp(-dot(p,p)/uRadius) * uValue;
-        outColor = vec4(texture(uTarget, vUv).xyz + splat, 1.0); }`,
-    curl: `uniform sampler2D uVelocity;
-      void main(){ float L=texture(uVelocity,vL).y, R=texture(uVelocity,vR).y,
-        T=texture(uVelocity,vT).x, B=texture(uVelocity,vB).x;
-        outColor = vec4(0.5*(R-L-T+B),0.,0.,1.); }`,
-    vorticity: `uniform sampler2D uVelocity; uniform sampler2D uCurl;
-      uniform float uStrength; uniform float uDt;
-      void main(){ float L=texture(uCurl,vL).x, R=texture(uCurl,vR).x,
-        T=texture(uCurl,vT).x, B=texture(uCurl,vB).x, C=texture(uCurl,vUv).x;
-        vec2 force = 0.5*vec2(abs(T)-abs(B), abs(R)-abs(L));
-        force /= length(force)+1e-4; force *= uStrength*C; force.y*=-1.0;
-        vec2 vel = texture(uVelocity,vUv).xy + force*uDt;
-        outColor = vec4(clamp(vel,-1000.,1000.),0.,1.); }`,
-    divergence: `uniform sampler2D uVelocity;
-      void main(){ float L=texture(uVelocity,vL).x, R=texture(uVelocity,vR).x,
-        T=texture(uVelocity,vT).y, B=texture(uVelocity,vB).y;
-        outColor = vec4(0.5*(R-L+T-B),0.,0.,1.); }`,
-    pressure: `uniform sampler2D uPressure; uniform sampler2D uDivergence;
-      void main(){ float L=texture(uPressure,vL).x, R=texture(uPressure,vR).x,
-        T=texture(uPressure,vT).x, B=texture(uPressure,vB).x,
-        d=texture(uDivergence,vUv).x;
-        outColor = vec4((L+R+T+B-d)*0.25,0.,0.,1.); }`,
-    gradSub: `uniform sampler2D uPressure; uniform sampler2D uVelocity;
-      void main(){ float L=texture(uPressure,vL).x, R=texture(uPressure,vR).x,
-        T=texture(uPressure,vT).x, B=texture(uPressure,vB).x;
-        vec2 vel = texture(uVelocity,vUv).xy - 0.5*vec2(R-L, T-B);
-        outColor = vec4(vel,0.,1.); }`,
-    display: `uniform sampler2D uDye; uniform vec3 uColor;
-      void main(){ float d = texture(uDye, vUv).x;
-        float a = clamp(d, 0.0, 0.85);
-        outColor = vec4(uColor * a, a); }`
-  };
-  const FHEAD = `#version 300 es
-    precision highp float; precision highp sampler2D;
-    in vec2 vUv; in vec2 vL; in vec2 vR; in vec2 vT; in vec2 vB; out vec4 outColor;\n`;
-
-  function compile(type, src) {
-    const sh = gl.createShader(type); gl.shaderSource(sh, src); gl.compileShader(sh);
-    if (!gl.getShaderParameter(sh, gl.COMPILE_STATUS)) throw gl.getShaderInfoLog(sh);
-    return sh;
-  }
-  const vs = compile(gl.VERTEX_SHADER, VERT);
-  function program(fsSrc) {
-    const p = gl.createProgram();
-    gl.attachShader(p, vs); gl.attachShader(p, compile(gl.FRAGMENT_SHADER, FHEAD + fsSrc));
-    gl.bindAttribLocation(p, 0, 'aPos');
-    gl.linkProgram(p);
-    if (!gl.getProgramParameter(p, gl.LINK_STATUS)) throw gl.getProgramInfoLog(p);
-    const u = {}; const n = gl.getProgramParameter(p, gl.ACTIVE_UNIFORMS);
-    for (let i = 0; i < n; i++) { const info = gl.getActiveUniform(p, i); u[info.name] = gl.getUniformLocation(p, info.name); }
-    return { p, u };
-  }
-  const progs = {}; for (const k in FRAGS) progs[k] = program(FRAGS[k]);
-
-  gl.bindBuffer(gl.ARRAY_BUFFER, gl.createBuffer());
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 3,-1, -1,3]), gl.STATIC_DRAW);
-  gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-
-  function fbo(w, h, internal, format) {
-    const tex = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, tex);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.texStorage2D(gl.TEXTURE_2D, 1, internal, w, h);
-    const fb = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, fb);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, tex, 0);
-    gl.clearColor(0,0,0,0); gl.clear(gl.COLOR_BUFFER_BIT);
-    return { tex, fb, w, h, texel: [1/w, 1/h] };
-  }
-  function doubleFbo(w, h, internal) {
-    let a = fbo(w, h, internal), b = fbo(w, h, internal);
-    return { get read(){return a}, get write(){return b}, swap(){ const t=a; a=b; b=t; }, w, h, texel: a.texel };
-  }
-
-  let simW, simH, dyeW, dyeH, velocity, pressure, divergence, curl, dye;
-  function sizeTargets(w, h) {
-    canvas.width = w; canvas.height = h;
-    const aspect = w / Math.max(h, 1);
-    simH = 128; simW = Math.max(32, Math.round(simH * aspect));
-    dyeH = 360; dyeW = Math.max(64, Math.round(dyeH * aspect));
-    velocity = doubleFbo(simW, simH, gl.RG16F);
-    pressure = doubleFbo(simW, simH, gl.R16F);
-    divergence = fbo(simW, simH, gl.R16F);
-    curl = fbo(simW, simH, gl.R16F);
-    dye = doubleFbo(dyeW, dyeH, gl.R16F);
-  }
-
-  function pass(prog, target, binds, uniforms) {
-    gl.useProgram(prog.p);
-    let unit = 0;
-    for (const [name, tex] of binds) {
-      gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex);
-      gl.uniform1i(prog.u[name], unit); unit++;
-    }
-    for (const [name, ...v] of uniforms) {
-      const loc = prog.u[name]; if (!loc) continue;
-      if (v.length === 1) gl.uniform1f(loc, v[0]);
-      else if (v.length === 2) gl.uniform2f(loc, v[0], v[1]);
-      else gl.uniform3f(loc, v[0], v[1], v[2]);
-    }
-    if (target) { gl.bindFramebuffer(gl.FRAMEBUFFER, target.fb); gl.viewport(0, 0, target.w, target.h); }
-    else { gl.bindFramebuffer(gl.FRAMEBUFFER, null); gl.viewport(0, 0, canvas.width, canvas.height); }
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
-  }
-
-  const queue = [];
-  return {
-    resize: sizeTargets,
-    /* u,v ∈ [0,1]（v 从底部算）；du,dv 为指针位移(uv/帧) */
-    splat(u, v, du, dv) { queue.push([u, v, du, dv]); },
-    step(dt, accentRgb) {
-      const aspect = simW / simH;
-      while (queue.length) {
-        const [u, v, du, dv] = queue.pop();
-        const force = 4200, speed = Math.hypot(du, dv);
-        pass(progs.splat, velocity.write,
-          [['uTarget', velocity.read.tex]],
-          [['uAspect', aspect], ['uPoint', u, v], ['uValue', du*force, dv*force, 0], ['uRadius', .0032], ['uTexel', ...velocity.texel]]);
-        velocity.swap();
-        pass(progs.splat, dye.write,
-          [['uTarget', dye.read.tex]],
-          [['uAspect', aspect], ['uPoint', u, v], ['uValue', Math.min(speed*36, .9), 0, 0], ['uRadius', .0022], ['uTexel', ...dye.texel]]);
-        dye.swap();
-      }
-      pass(progs.curl, curl, [['uVelocity', velocity.read.tex]], [['uTexel', ...velocity.texel]]);
-      pass(progs.vorticity, velocity.write,
-        [['uVelocity', velocity.read.tex], ['uCurl', curl.tex]],
-        [['uStrength', 26], ['uDt', dt], ['uTexel', ...velocity.texel]]);
-      velocity.swap();
-      pass(progs.divergence, divergence, [['uVelocity', velocity.read.tex]], [['uTexel', ...velocity.texel]]);
-      for (let i = 0; i < 14; i++) {
-        pass(progs.pressure, pressure.write,
-          [['uPressure', pressure.read.tex], ['uDivergence', divergence.tex]],
-          [['uTexel', ...velocity.texel]]);
-        pressure.swap();
-      }
-      pass(progs.gradSub, velocity.write,
-        [['uPressure', pressure.read.tex], ['uVelocity', velocity.read.tex]],
-        [['uTexel', ...velocity.texel]]);
-      velocity.swap();
-      pass(progs.advect, velocity.write,
-        [['uVelocity', velocity.read.tex], ['uSource', velocity.read.tex]],
-        [['uDt', dt], ['uDissipation', .28], ['uTexel', ...velocity.texel]]);
-      velocity.swap();
-      pass(progs.advect, dye.write,
-        [['uVelocity', velocity.read.tex], ['uSource', dye.read.tex]],
-        [['uDt', dt], ['uDissipation', 1.15], ['uTexel', ...dye.texel]]);
-      dye.swap();
-      pass(progs.display, null, [['uDye', dye.read.tex]],
-        [['uColor', ...accentRgb], ['uTexel', ...dye.texel]]);
-    },
-    /* 测试钩子:读回染料非零像素数（RED+HALF_FLOAT 为 R16F 的标准读回格式） */
-    _dyeEnergy() {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, dye.read.fb);
-      const px = new Uint16Array(dyeW * dyeH);
-      gl.readPixels(0, 0, dyeW, dyeH, gl.RED, gl.HALF_FLOAT, px);
-      let n = 0; for (let i = 0; i < px.length; i++) if (px[i] > 0x2000) n++;
-      return n;
-    }
-  };
-}
-
-/* ---- 指针交互引擎（逆向自 haoqi.design 的 5 层配方，2D canvas 平替）----
-   ① 弹簧质点点阵：鼠标速度把点"踢"开，弹簧振荡回位 → 流体尾迹感
-   ② 热量拖尾:光标经过的点被点燃，指数冷却 → 像素拖尾
-   ③ 速度响应:甩得越快，注入的能量越大
-   ④ 阻尼跟随:光晕和光源都过 damp()，没有直接赋值
-   ⑤ 坐标 HUD:Y 从底部算（WebGL 坐标系彩蛋）
-   首屏滚出视口自动停帧;prefers-reduced-motion 全部退化为静态。 ---- */
-const cv = document.getElementById('dots'), ctx = cv.getContext('2d');
-const glowEl = document.getElementById('glow');
+const scroller = document.getElementById('scroll');
+const statement = document.getElementById('statement');
+const stagePin = document.getElementById('stage-pin');
+const stTitle = document.getElementById('st-title');
+const promptEl = document.getElementById('prompt');
+const pline = document.getElementById('pline');
+const glassHome = document.getElementById('glass-home');
+const caretHome = document.getElementById('caret-home');
+const caretEnd = document.getElementById('caret-end');
 const coordsEl = document.getElementById('coords');
 const heroTitle = document.querySelector('.hero .display');
-const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-const GAP = 34, LIGHT_R = 220, KICK_R = 150;
 
-let W, H, dots = [];
-/* 指针状态：raw=事件原始值,lx/ly=阻尼光源,vx/vy=指针速度(px/s) */
-const P = { x: -9999, y: -9999, lx: -9999, ly: -9999, vx: 0, vy: 0, t: 0, cx: 0, cy: 0 };
-
-const damp = (a, b, l, dt) => a + (b - a) * (1 - Math.exp(-l * dt));
-
-function layout() {
-  const r = cv.parentElement.getBoundingClientRect();
-  const dpr = Math.min(devicePixelRatio || 1, 2);
-  W = r.width; H = r.height;
-  cv.width = W * dpr; cv.height = H * dpr;
-  ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  dots = [];
-  for (let y = GAP; y < H; y += GAP)
-    for (let x = GAP; x < W; x += GAP)
-      dots.push({ x, y, ox: 0, oy: 0, vx: 0, vy: 0, heat: 0, p: Math.random() * Math.PI * 2 });
-}
-/* 流体实例（reduced-motion、无 WebGL2 或编译失败时为 null → 回退 CSS 光晕） */
-let fluid = null;
-if (!reduced) {
-  try { fluid = createFluid(document.getElementById('fluid')); } catch (_) { fluid = null; }
-}
-let titleOff = { x: 0, y: 0 };
-
-/* ---- 逐字母可变字体波浪：把大字拆成字母,光标附近的字母
-   wdth 110→150、wght 800→900 隆起,离开后阻尼弹回。
-   拆分只在 JS 里做,无 JS 时保持纯文本。 ---- */
+/* ---- 首屏大字：逐字母可变字体波浪 ---- */
 const letters = [];
-if (!reduced && heroTitle) {
+if (!reduced && fine && heroTitle) {
   heroTitle.querySelectorAll('.reveal').forEach(span => {
-    const text = span.textContent;
-    span.textContent = '';
+    const text = span.textContent; span.textContent = '';
     for (const ch of text) {
-      const s = document.createElement('span');
-      s.className = 'ch'; s.textContent = ch;
-      span.appendChild(s);
+      const s = document.createElement('span'); s.className = 'ch'; s.textContent = ch; span.appendChild(s);
       if (ch.trim()) letters.push({ el: s, x: 0, y: 0, w: 110, g: 800, lw: 0, lg: 0 });
     }
   });
 }
 function measureLetters() {
-  if (!letters.length) return;
-  const hr = cv.getBoundingClientRect();
-  for (const L of letters) {
-    const r = L.el.getBoundingClientRect();
-    L.x = r.left - hr.left + r.width / 2;
-    L.y = r.top - hr.top + r.height / 2;
-  }
+  for (const L of letters) { const r = L.el.getBoundingClientRect(); L.x = r.left + r.width / 2; L.y = r.top + r.height / 2; }
 }
-
-function layoutAll() {
-  layout();
-  if (fluid) fluid.resize(Math.round(W), Math.round(H));
-  if (heroTitle) titleOff = { x: heroTitle.offsetLeft, y: heroTitle.offsetTop };
-  measureLetters();
-}
-layoutAll();
-new ResizeObserver(layoutAll).observe(cv.parentElement);
-if (document.fonts && document.fonts.ready) document.fonts.ready.then(measureLetters);
-
-addEventListener('pointermove', e => {
-  const r = cv.getBoundingClientRect();
-  const x = e.clientX - r.left, y = e.clientY - r.top;
-  const now = performance.now(), dt = Math.min(Math.max(now - P.t, 8), 100) / 1000;
-  if (P.x > -9000) {
-    /* 指针速度，限幅防瞬移(标签页切换/触控) */
-    P.vx = Math.max(-3000, Math.min(3000, (x - P.x) / dt));
-    P.vy = Math.max(-3000, Math.min(3000, (y - P.y) / dt));
-    /* 向流体注入力：uv 坐标,v 从底部算 */
-    if (fluid && heroVisible && W > 0) {
-      const cap = v => Math.max(-.05, Math.min(.05, v));
-      fluid.splat(x / W, 1 - y / H, cap((x - P.x) / W), cap(-(y - P.y) / H));
-    }
-  }
-  P.x = x; P.y = y; P.t = now;
-  P.cx = Math.round(e.clientX); P.cy = Math.round(innerHeight - e.clientY);
-});
-
-const cssVar = n => getComputedStyle(document.documentElement).getPropertyValue(n).trim();
-
-let lastF = 0, lastMeasure = 0;
-function frame(t) {
-  const dt = Math.min(Math.max((t - lastF) / 1000, .001), .05); lastF = t;
-  ctx.clearRect(0, 0, W, H);
-  const rgb = cssVar('--label'), argb = cssVar('--accent-glow');
-
-  /* ④ 阻尼光源：光晕拖在指针后面一点，产生惯性 */
-  if (P.lx < -9000) { P.lx = P.x; P.ly = P.y; }
-  P.lx = damp(P.lx, P.x, 10, dt);
-  P.ly = damp(P.ly, P.y, 10, dt);
-  const speed = Math.hypot(P.vx, P.vy);            /* ③ 速度能量 */
-  const energy = Math.min(speed / 1200, 1);
-
-  /* 真流体：驱动求解器；无 WebGL2 时回退 CSS 光晕 */
-  if (fluid) {
-    fluid.step(dt, argb.split(',').map(s => +s / 255));
-  } else {
-    glowEl.style.background =
-      `radial-gradient(circle ${LIGHT_R + energy * 120}px at ${P.lx}px ${P.ly}px, rgba(${argb}, ${.12 + energy * .1}), transparent 70%)`;
-  }
-
-  /* 指针速度在两帧之间自然衰减（停手后能量归零） */
-  P.vx = damp(P.vx, 0, 6, dt); P.vy = damp(P.vy, 0, 6, dt);
-
-  /* 逐字母波浪：光标附近的字母隆起(wdth/wght),阻尼回落 */
-  if (!reduced && letters.length && P.x > -9000) {
-    if (t - lastMeasure > 400) { measureLetters(); lastMeasure = t; }
-    for (const L of letters) {
-      const dl = Math.max(Math.hypot(L.x - P.lx, L.y - P.ly), 1);
-      const n = Math.max(0, 1 - dl / 210);
-      L.w = damp(L.w, 110 + n * 40, 14, dt);
-      L.g = damp(L.g, 800 + n * 100, 14, dt);
-      if (Math.abs(L.w - L.lw) > .4 || Math.abs(L.g - L.lg) > 4) {
-        L.el.style.fontVariationSettings = `"wdth" ${L.w.toFixed(1)}, "wght" ${Math.round(L.g)}`;
-        /* 伪法线光照：背光侧挤出暗影(长度∝靠近度),向光侧一道高光边。
-           DOM 文本没有像素法线,用光向解出的阴影几何达成同等感知。 */
-        const dx = (L.x - P.lx) / dl, dy = (L.y - P.ly) / dl;
-        const s = 1.5 + n * 6;
-        L.el.style.textShadow =
-          `${(dx * s).toFixed(1)}px ${(dy * s).toFixed(1)}px ${(1 + n * 3).toFixed(1)}px rgba(0,0,0,.5), ` +
-          `${(-dx * 1.4).toFixed(1)}px ${(-dy * 1.4).toFixed(1)}px 1px rgba(${argb},${(.15 + n * .45).toFixed(2)})`;
-        L.lw = L.w; L.lg = L.g;
-      }
-    }
-  }
-
-  /* 大字：光源驱动的透字渐变 + 透视倾斜（立体感） */
-  if (!reduced && heroTitle && P.x > -9000) {
-    const nx = (P.lx / Math.max(W, 1)) - .5, ny = (P.ly / Math.max(H, 1)) - .5;
-    heroTitle.style.setProperty('--gx', `${(P.lx - titleOff.x).toFixed(1)}px`);
-    heroTitle.style.setProperty('--gy', `${(P.ly - titleOff.y).toFixed(1)}px`);
-    heroTitle.style.transform =
-      `perspective(1100px) rotateY(${(nx * 5).toFixed(2)}deg) rotateX(${(-ny * 3.5).toFixed(2)}deg) translate3d(${(-nx * 8).toFixed(2)}px, ${(-ny * 5).toFixed(2)}px, 0)`;
-  }
-
-  for (const d of dots) {
-    const px = d.x + d.ox, py = d.y + d.oy;
-    const dist = Math.hypot(px - P.lx, py - P.ly);
-    const near = Math.max(0, 1 - dist / LIGHT_R);
-
-    if (!reduced) {
-      /* ① 踢开：落在 KICK_R 内的点获得沿指针速度方向的冲量 */
-      if (dist < KICK_R && speed > 60) {
-        const fall = 1 - dist / KICK_R;
-        d.vx += P.vx * fall * fall * dt * 1.9;
-        d.vy += P.vy * fall * fall * dt * 1.9;
-      }
-      /* 弹簧回位:F = -k·offset - c·v （欠阻尼 → 回弹时有振荡） */
-      d.vx += (-90 * d.ox - 6.5 * d.vx) * dt;
-      d.vy += (-90 * d.oy - 6.5 * d.vy) * dt;
-      d.ox += d.vx * dt; d.oy += d.vy * dt;
-    }
-
-    /* ② 热量：贴近光源点燃，damp(λ=1.8) 指数冷却 → 拖尾 */
-    if (dist < 30) d.heat = 1;
-    else d.heat = damp(d.heat, 0, 1.8, dt);
-
-    const glow2 = Math.max(near * (.35 + energy * .45), d.heat);
-    const breathe = reduced ? 0 : (Math.sin(t / 1400 + d.p) + 1) / 2 * .05;
-    ctx.fillStyle = glow2 > .05
-      ? `rgba(${argb}, ${.08 + glow2 * .82})`
-      : `rgba(${rgb}, ${.06 + breathe})`;
-    ctx.beginPath();
-    ctx.arc(d.x + d.ox, d.y + d.oy, 1 + glow2 * 1.9, 0, 7);
-    ctx.fill();
-  }
-
-  /* ⑤ 坐标 HUD（Y 从视口底部算,向原版致敬） */
-  if (coordsEl && P.x > -9000)
-    coordsEl.textContent =
-      `${String(P.cx).padStart(4, '0')} X ${String(P.cy).padStart(4, '0')} Y`;
-
-  if (!reduced && heroVisible) requestAnimationFrame(frame);
-}
-
-let heroVisible = false;
-new IntersectionObserver(([e]) => {
-  const was = heroVisible;
-  heroVisible = e.isIntersecting;
-  if (heroVisible && !was) { lastF = performance.now(); requestAnimationFrame(frame); }
-  if (!heroVisible) { ctx.clearRect(0, 0, W, H); glowEl.style.background = 'none'; }
-}).observe(cv);
-if (reduced) requestAnimationFrame(frame);
 
 /* ============================================================
-   精选画廊引擎（2D canvas 忠实复刻 haoqi 的两大互动）
-   ① 悬停像素揭示：front 图之上，hover 图以像素方块从中心炸开
-   ② 滚动卷曲：滚动速度驱动卡片沿圆柱面水平收缩(uCurl 的 CSS 平替)
-   每卡独立 rAF，仅在 hover 演化或滚动卷曲未归零时运行，静止即停帧。
+   WebGL 管线。失败或减弱动效时整体跳过，页面退回静态版。
    ============================================================ */
-(function initGallery() {
-  const cards = [...document.querySelectorAll('.gcard')];
-  if (!cards.length) return;
-  const touch = matchMedia('(hover: none)').matches;
-  let closeOpen = null;                // 触屏:当前翻开卡片的"翻回"函数
-  const CELL = 20;                     // 像素方块边长(CSS px)
-  const loadImg = src => new Promise(res => {
-    const im = new Image(); im.onload = () => res(im); im.onerror = () => res(null); im.src = src;
+let renderer = null;
+if (!reduced) {
+  try {
+    THREE.ColorManagement.enabled = false;        // 着色器直接写显示色
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: false, alpha: false, powerPreference: 'high-performance' });
+    if (!renderer.capabilities.isWebGL2) throw new Error('webgl2 required');
+  } catch (_) { renderer = null; }
+}
+
+if (!renderer) {
+  pline.textContent = PROMPT;
+} else {
+  root.classList.add('gl');
+  const VIRT = fine;                               // 鼠标设备用阻尼虚拟滚动；触屏保留原生滚动
+  if (VIRT) root.classList.add('virt');
+  renderer.autoClear = false;
+  const DPR = Math.min(devicePixelRatio || 1, fine ? 2 : 1.5);
+  renderer.setPixelRatio(DPR);
+
+  const FS_VERT = `varying vec2 vUv; void main(){ vUv = uv; gl_Position = vec4(position.xy, 0.0, 1.0); }`;
+  const fsScene = new THREE.Scene();
+  const fsCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+  const fsQuad = new THREE.Mesh(new THREE.PlaneGeometry(2, 2));
+  fsQuad.frustumCulled = false; fsScene.add(fsQuad);
+  const fsMat = (frag, uniforms) => new THREE.ShaderMaterial({ vertexShader: FS_VERT, fragmentShader: frag, uniforms, depthTest: false, depthWrite: false });
+  const pass = (mat, target) => { fsQuad.material = mat; renderer.setRenderTarget(target); renderer.render(fsScene, fsCam); };
+  const rt = (w, h, opts = {}) => new THREE.WebGLRenderTarget(Math.max(2, w | 0), Math.max(2, h | 0), { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: false, ...opts });
+
+  let W = 1, H = 1, PW = 1, PH = 1;
+
+  /* ---- 1. 背景层栈（0.3 倍分辨率，一遍程序化）：指针光斑 → 漩涡 → 正弦 → 拉伸 Voronoi 碎裂 ---- */
+  const bgMat = fsMat(`
+precision highp float;
+varying vec2 vUv;
+uniform vec2 uRes; uniform vec2 uPos; uniform float uTime;
+uniform vec3 uBase; uniform vec3 uGlow;
+mat2 rot(float a){ return mat2(cos(a), -sin(a), sin(a), cos(a)); }
+vec2 rnd2(vec2 p){ return fract(sin(vec2(dot(p, vec2(127.1, 311.7)), dot(p, vec2(269.5, 183.3)))) * 43758.5453); }
+void main(){
+  float asp = uRes.x / uRes.y;
+  vec2 uv = vUv;
+  vec2 st = (uv - 0.5) * vec2(asp, 1.0) * 14.0;
+  st = rot(-0.785) * st * vec2(1.0, 0.11);
+  vec2 ist = floor(st), fst = fract(st);
+  float d1 = 9.0, d2 = 9.0; vec2 best = vec2(0.0);
+  for (int j = -1; j <= 1; j++) for (int i = -1; i <= 1; i++) {
+    vec2 nb = vec2(float(i), float(j));
+    vec2 pt = rnd2(ist + nb);
+    pt = 0.5 + 0.5 * sin(5.0 + uTime * 0.2 + 6.2831 * pt);
+    float d = length(nb + pt - fst);
+    if (d < d1) { d2 = d1; d1 = d; best = pt; } else if (d < d2) { d2 = d; }
+  }
+  float soft = smoothstep(0.0, 0.04, d2 - d1) * smoothstep(0.0, 0.02, d1);
+  uv += (best * 0.36 - 0.18) * soft;
+  vec2 wc = uv * 2.0 - 1.0;
+  wc.x += sin((wc.y + uPos.y) * 7.0 + uTime * 0.25) * 0.236;
+  uv = wc * 0.5 + 0.5;
+  vec2 q = uv - uPos; q.x *= asp;
+  float dc = length(q);
+  float a = 1.0 * smoothstep(0.25, 0.0, dc) + uTime * 0.05;
+  q = rot(a * smoothstep(0.25, 0.0, dc)) * q;
+  vec2 sq = q * vec2(0.54, 0.46);
+  float fall = smoothstep(0.03, 0.30, length(sq));
+  gl_FragColor = vec4(mix(uGlow, uBase, fall), 1.0);
+}`, {
+    uRes: { value: new THREE.Vector2(1, 1) }, uPos: { value: new THREE.Vector2(0.5, 0.5) }, uTime: { value: 0 },
+    uBase: { value: new THREE.Color() }, uGlow: { value: new THREE.Color() },
   });
 
-  cards.forEach(async card => {
-    const cv = card.querySelector('canvas'), ctx = cv.getContext('2d');
-    const [front, hover] = await Promise.all([loadImg(card.dataset.front), loadImg(card.dataset.hover)]);
-    if (!front) return;
-    /* 槽的 aspect-ratio = front 图原始宽高比 → 横/方/竖各自成形，永不裁切 */
-    card.querySelector('.stage').style.setProperty('--ar', `${front.width} / ${front.height}`);
-    card.querySelector('.fallback')?.remove();
-
-    let W = 0, H = 0, dpr = 1;
-    const cover = (img) => {                    // object-fit: cover 计算
-      const s = Math.max(W / img.width, H / img.height);
-      const w = img.width * s, h = img.height * s;
-      return [(W - w) / 2, (H - h) / 2, w, h];
-    };
-    function resize() {
-      const r = cv.getBoundingClientRect();
-      dpr = Math.min(devicePixelRatio || 1, 2);
-      W = r.width; H = r.height;
-      cv.width = Math.max(1, W * dpr); cv.height = Math.max(1, H * dpr);
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      render(hp);
-    }
-
-    let hp = 0, target = 0, raf = 0, last = 0;    // hp: hover 进度 0→1
-    function render(p) {
-      ctx.clearRect(0, 0, W, H);
-      const [fx, fy, fw, fh] = cover(front);
-      ctx.drawImage(front, fx, fy, fw, fh);
-      if (p <= 0.001 || !hover) return;
-      /* hover 的逆 cover 映射：画布坐标 → 原图自然像素坐标（按原图真实宽高，不是画布宽高）*/
-      const hs = Math.max(W / hover.width, H / hover.height);   // 画布像素 / 原图像素
-      const hox = (W - hover.width * hs) / 2, hoy = (H - hover.height * hs) / 2;
-      const cx = W / 2, cy = H / 2;
-      const maxD = Math.hypot(cx, cy);
-      const band = CELL * 4;
-      const revealR = p * (maxD + band);
-      for (let y = 0; y < H; y += CELL) {
-        for (let x = 0; x < W; x += CELL) {
-          const ccx = x + CELL / 2, ccy = y + CELL / 2;
-          const d = Math.hypot(ccx - cx, ccy - cy);
-          const grow = Math.max(0, Math.min(1, (revealR - d) / band));
-          if (grow <= 0.001) continue;
-          const half = 0.5 * CELL * (grow * grow * (3 - 2 * grow)); // smoothstep
-          const dw = half * 2, dx = ccx - dw / 2, dy = ccy - dw / 2;
-          // 目标格 (dx,dy,dw) → 原图源区域 (sX,sY,sW)
-          ctx.drawImage(hover,
-            (dx - hox) / hs, (dy - hoy) / hs, dw / hs, dw / hs,
-            dx, dy, dw, dw);
-        }
-      }
-    }
-
-    function tick(t) {
-      const dt = Math.min(Math.max((t - last) / 1000, .001), .05); last = t;
-      hp += (target - hp) * (1 - Math.exp(-11 * dt));
-      render(hp);
-      if (Math.abs(target - hp) > 0.002) raf = requestAnimationFrame(tick);
-      else { hp = target; render(hp); raf = 0; }
-    }
-    const kick = () => { if (!raf) { last = performance.now(); raf = requestAnimationFrame(tick); } };
-
-    const setT = v => { if (reduced) { hp = target = v; render(v); } else { target = v; kick(); } };
-    if (!touch) {
-      if (!reduced) {
-        card.addEventListener('pointerenter', () => setT(1));
-        card.addEventListener('pointerleave', () => setT(0));
-      }
-    } else {
-      /* 触屏无悬停:第一次点按翻面(拦截跳转),已翻开再点按才走链接;翻开新卡时旧卡翻回 */
-      const flipBack = () => setT(0);
-      card.addEventListener('click', e => {
-        if (target < 0.5) {
-          e.preventDefault();
-          if (closeOpen && closeOpen !== flipBack) closeOpen();
-          setT(1); closeOpen = flipBack;
-        }
-      });
-    }
-    new ResizeObserver(resize).observe(cv);
-    resize();
+  const TRAIL_N = 12;
+  const compMat = fsMat(`
+precision highp float;
+varying vec2 vUv;
+uniform sampler2D uBg; uniform vec2 uRes; uniform float uDpr;
+uniform vec2 uTrail[${TRAIL_N}]; uniform float uTrailS[${TRAIL_N}];
+uniform vec3 uAccent; uniform vec3 uDotCol; uniform float uDotA;
+void main(){
+  vec3 c = vec3(0.0); float r = 1.0;
+  vec2 px = vec2(uRes.y / uRes.x, 1.0) * 0.012;
+  for (int i = 0; i < 12; i++) {
+    float th = float(i) * 2.39996323; r += 1.0 / r;
+    c += texture2D(uBg, vUv + (r - 1.0) * vec2(cos(th), sin(th)) * px).rgb;
+  }
+  c /= 12.0;
+  float cell = 34.0 * uDpr;
+  vec2 fc = gl_FragCoord.xy;
+  vec2 id = floor(fc / cell), cuv = fract(fc / cell);
+  float d = distance(cuv, vec2(0.5));
+  float aa = fwidth(d) * 1.5;
+  c = mix(c, uDotCol, smoothstep(0.055, 0.055 - aa, d) * uDotA);
+  float hl = 0.0;
+  for (int i = 0; i < ${TRAIL_N}; i++) {
+    vec2 pc = floor(uTrail[i] / cell);
+    vec2 dd = abs(id - pc);
+    hl = max(hl, (1.0 - step(0.5, max(dd.x, dd.y))) * uTrailS[i]);
+  }
+  c = mix(c, uAccent, smoothstep(0.30, 0.30 - aa, d) * hl);
+  gl_FragColor = vec4(c, 1.0);
+}`, {
+    uBg: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uDpr: { value: DPR },
+    uTrail: { value: Array.from({ length: TRAIL_N }, () => new THREE.Vector2(-9999, -9999)) },
+    uTrailS: { value: new Array(TRAIL_N).fill(0) },
+    uAccent: { value: new THREE.Color() }, uDotCol: { value: new THREE.Color() }, uDotA: { value: 0.22 },
   });
 
-  /* ② 滚动卷曲：整组卡片按滚动速度做轻微透视挤压 */
-  if (!reduced) {
-    let lastY = scrollY, vel = 0, curlRaf = 0;
-    const curlTick = () => {
-      vel *= 0.88;
-      const squeeze = Math.max(-1, Math.min(1, vel / 45));
-      cards.forEach((card, i) => {
-        const dir = i % 2 ? -1 : 1;
-        card.style.transform =
-          `perspective(1600px) rotateX(${(squeeze * 3).toFixed(2)}deg) scaleX(${(1 - Math.abs(squeeze) * 0.05).toFixed(3)}) skewX(${(squeeze * dir * 1.2).toFixed(2)}deg)`;
-      });
-      if (Math.abs(vel) > 0.4) curlRaf = requestAnimationFrame(curlTick);
-      else { cards.forEach(c => c.style.transform = 'perspective(1600px)'); curlRaf = 0; }
-    };
-    addEventListener('scroll', () => {
-      vel += (scrollY - lastY); lastY = scrollY;
-      vel = Math.max(-120, Math.min(120, vel));
-      if (!curlRaf) curlRaf = requestAnimationFrame(curlTick);
-    }, { passive: true });
+  /* ---- 2. 3D 场景 ---- */
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(30, 1, 0.1, 200);
+  const CAM_Z = 12;
+  camera.position.set(0, 0, CAM_Z);
+  const worldH = () => 2 * Math.tan(THREE.MathUtils.degToRad(camera.fov / 2)) * CAM_Z;
+
+  const OBJ_VERT = `
+varying vec3 vN; varying vec3 vEye; varying vec3 vWorld; varying float vY;
+void main(){
+  vec4 wp = modelMatrix * vec4(position, 1.0);
+  vWorld = wp.xyz;
+  vN = normalize((modelMatrix * vec4(normal, 0.0)).xyz);
+  vEye = normalize(wp.xyz - cameraPosition);
+  vY = position.y;
+  gl_Position = projectionMatrix * viewMatrix * wp;
+}`;
+
+  /* 玻璃：逐通道折射背景贴图 + 体色 + 跟随鼠标的高光 + 侧向菲涅尔 */
+  const glassMat = new THREE.ShaderMaterial({
+    vertexShader: OBJ_VERT,
+    fragmentShader: `
+precision highp float;
+uniform sampler2D uBg; uniform vec2 uRes; uniform vec3 uLight;
+uniform vec3 uTintA; uniform vec3 uTintB; uniform vec2 uYRange; uniform float uDark;
+varying vec3 vN; varying vec3 vEye; varying vec3 vWorld; varying float vY;
+float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
+void main(){
+  vec2 uv = gl_FragCoord.xy / uRes;
+  vec3 n = normalize(vN), e = normalize(vEye);
+  vec3 rR = refract(e, n, 1.0 / 1.15), rG = refract(e, n, 1.0 / 1.18), rB = refract(e, n, 1.0 / 1.22);
+  float noise = rnd(uv) * 0.025;
+  vec3 col = vec3(0.0);
+  for (int i = 0; i < 6; i++) {
+    float s = float(i) / 6.0 * 0.1 + noise;
+    col.r += texture2D(uBg, uv + rR.xy * (0.24 + s * 1.0) * 0.30).r;
+    col.g += texture2D(uBg, uv + rG.xy * (0.24 + s * 2.0) * 0.30).g;
+    col.b += texture2D(uBg, uv + rB.xy * (0.24 + s * 3.0) * 0.30).b;
   }
-})();
+  col /= 6.0;
+  float ndv = abs(dot(n, e));
+  float thick = 1.0 - ndv;
+  float g = clamp((vY - uYRange.x) / (uYRange.y - uYRange.x), 0.0, 1.0);
+  vec3 tint = mix(uTintB, uTintA, g);
+  vec3 dk = col * 1.3; dk = mix(dk, dk * tint * 2.6, 0.65) + tint * (0.10 + 0.42 * thick);
+  vec3 lt = col * mix(vec3(1.0), tint * 1.25, 0.55 + 0.4 * thick);      // 亮底：按厚度吸收
+  col = mix(lt, dk, uDark);
+  vec3 V = -e;
+  vec3 L = normalize(uLight - vWorld);
+  float spec = pow(max(dot(n, normalize(L + V)), 0.0), 220.0);
+  float spec2 = pow(max(dot(n, normalize(vec3(-0.5, 0.8, 0.6) + V)), 0.0), 320.0);
+  col += spec * 1.3 + spec2 * 0.7 + max(dot(n, L), 0.0) * 0.05;
+  float fr = pow(1.0 - ndv, 5.0);
+  float side = smoothstep(-0.5, 0.5, dot(n, normalize(vec3(-1.0, 0.3, 1.0))));
+  col += fr * side * 0.45;
+  gl_FragColor = vec4(col, 1.0);
+}`,
+    uniforms: {
+      uBg: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uLight: { value: new THREE.Vector3(4, 6, 8) },
+      uTintA: { value: new THREE.Color(0.0, 0.80, 0.56) }, uTintB: { value: new THREE.Color(0.0, 0.40, 0.52) },
+      uYRange: { value: new THREE.Vector2(-1.2, 1.2) }, uDark: { value: 1 },
+    },
+  });
 
-/* ============================================================
-   ③+① 星空穿越 → 收束成咖啡因分子（忠实复刻自 haoqi 实测：
-   星场灭点跟随鼠标、青蓝紫多彩流线、滚动越深越猛;末段粒子汇聚组装成
-   咖啡因分子——haoqi 收束成蓝箭头光标,此处换成属于用户的分子）。
-   滚动驱动的 sticky 场景,一块 canvas 三阶段:warp → converge → molecule。
-   ============================================================ */
-(function initScene() {
-  const cv = document.getElementById('scene');
-  const section = document.getElementById('scene-section');
-  if (!cv || !section) return;
-  const ctx = cv.getContext('2d');
-  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-
-  // 结尾不收束：星流慢下来、变稀,只留少数"余烬"继续前行 → 终端提示符浮起(伸出的手)
-  const STAR = [[90,220,255],[80,140,255],[150,95,255],[235,95,220],[95,240,215]];  // 青蓝紫品红
-  const N = 480;
-  let W=0,H=0,dpr=1,cx=0,cy=0,fov=0, P=[];
-  const smooth = t => t*t*(3-2*t);
-  function initP(){ P = Array.from({length:N},(_,i)=>({ x:Math.random()*2-1, y:Math.random()*2-1, z:0.1+Math.random()*0.9, ember:i%7===0, col:STAR[i%STAR.length] })); }
-  function layout(){
-    const r = cv.getBoundingClientRect(); dpr=Math.min(devicePixelRatio||1,2);
-    W=r.width; H=r.height; cx=W/2; cy=H/2; fov=Math.min(W,H)*0.9;
-    cv.width=Math.max(1,W*dpr); cv.height=Math.max(1,H*dpr); ctx.setTransform(dpr,0,0,dpr,0,0);
-    if(!P.length) initP();
-  }
-
-  let mx=0.5, my=0.5;
-  const progress = () => { const r=section.getBoundingClientRect(); return Math.max(0,Math.min(1,-r.top/(r.height-innerHeight))); };
-
-  const PROMPT = 'second opinions welcome';
-  const promptEl = () => section.querySelector('.sc-prompt');
-  const plineEl  = () => section.querySelector('.sc-pline');
-  function setPrompt(typeP){                                     // 滚动驱动逐字打出(可倒放)
-    const pe=promptEl(), pl=plineEl(); if(!pe||!pl) return;
-    const n=Math.round(typeP*PROMPT.length);
-    if(pl.textContent.length!==n) pl.textContent=PROMPT.slice(0,n);
-    pe.style.opacity = typeP>0 ? '1' : '0';
-  }
-
-  let last=0, raf=0, visible=false;
-  const warpText = () => section.querySelector('.sc-warp');
-  function frame(t){
-    const dt=Math.min(Math.max((t-last)/1000,.001),.05); last=t;
-    const p=progress();
-    const warpI=Math.min(1,p/0.38);                              // warp 强度(p 0→0.38,快速到峰值)
-    const fade=smooth(Math.max(0,Math.min(1,(p-0.5)/0.3)));      // 收势(p 0.5→0.8):慢下来、变稀
-    const typeP=smooth(Math.max(0,Math.min(1,(p-0.68)/0.26)));   // 提示符逐字打出(p 0.68→0.94)
-    ctx.clearRect(0,0,W,H);
-    const wt=warpText();
-    if(wt) wt.style.opacity=(1-Math.min(1,fade*1.6)).toFixed(2);
-    setPrompt(typeP);
-
-    const vx=W*mx, vy=H*my;                                      // warp 灭点=鼠标
-    const speed=(0.11+warpI*1.7)*dt*3*(1-fade*0.9);              // 收势时减速但永不停(=continues)
-    ctx.lineCap='round';
-    for(const s of P){
-      const pz=s.z;
-      s.z-=speed; if(s.z<=0.02){ s.x=Math.random()*2-1; s.y=Math.random()*2-1; s.z=1; continue; }
-      const x=vx+s.x/s.z*fov, y=vy+s.y/s.z*fov, near=1-s.z;
-      const thin = s.ember ? 1-fade*0.55 : 1-fade;               // 多数淡出,余烬留下继续前行
-      const a=(0.22+near*0.78)*Math.min(1,0.4+warpI)*thin;
-      if(a<=0.004) continue;
-      const c=s.col, px=vx+s.x/pz*fov, py=vy+s.y/pz*fov;
-      ctx.strokeStyle=`rgba(${c[0]},${c[1]},${c[2]},${a})`; ctx.lineWidth=0.7+near*2.8;
-      ctx.beginPath();ctx.moveTo(px,py);ctx.lineTo(x,y);ctx.stroke();
+  /* 「n=1」充气管字 */
+  function tube(points, radius = 0.25) {
+    const curve = new THREE.CatmullRomCurve3(points.map(p => new THREE.Vector3(p[0], p[1], p[2] || 0)), false, 'catmullrom', 0.45);
+    const g = new THREE.Group();
+    g.add(new THREE.Mesh(new THREE.TubeGeometry(curve, 120, radius, 28, false), glassMat));
+    for (const p of [points[0], points[points.length - 1]]) {
+      const s = new THREE.Mesh(new THREE.SphereGeometry(radius, 28, 20), glassMat);
+      s.position.set(p[0], p[1], p[2] || 0); g.add(s);
     }
-    if(visible && !reduced) raf=requestAnimationFrame(frame); else raf=0;
+    return g;
   }
+  const glass = new THREE.Group();
+  const glassInner = new THREE.Group();
+  glass.add(glassInner);
+  glassInner.add(tube([[0, 1.0, 0], [0.0, 0.0, 0.04], [0, -1, 0]]));
+  glassInner.add(tube([[0.0, 0.25, 0.02], [0.2, 0.78, 0.0], [0.55, 0.98, -0.04], [0.9, 0.72, 0.0], [1.02, 0.1, 0.05], [1.02, -1, 0]]));
+  glassInner.add(tube([[1.75, 0.33, 0.1], [2.2, 0.36, 0.14], [2.65, 0.33, 0.1]], 0.2));
+  glassInner.add(tube([[1.75, -0.33, -0.05], [2.2, -0.30, -0.02], [2.65, -0.33, -0.05]], 0.2));
+  glassInner.add(tube([[3.35, 0.5, 0], [3.62, 0.72, 0.03], [3.86, 1.0, 0.0], [3.9, 0.3, 0.04], [3.9, -1, 0]]));
+  glassInner.position.set(-1.95, 0, 0);
+  scene.add(glass);
 
-  layout();
-  new ResizeObserver(layout).observe(cv);
-  if(!reduced){
-    addEventListener('pointermove', e=>{
-      const r=cv.getBoundingClientRect();
-      if(e.clientX>=r.left&&e.clientX<=r.right&&e.clientY>=r.top&&e.clientY<=r.bottom){
-        mx=(e.clientX-r.left)/r.width; my=(e.clientY-r.top)/r.height;
-      }
+  /* 方块光标：静止时是强调色实体；放大吞屏后表面变成屏幕空间的星流 */
+  const caretShape = new THREE.Shape();
+  { const w = 0.6, h = 1.1, r = 0.11, x = -w / 2, y = -h / 2;
+    caretShape.moveTo(x + r, y); caretShape.lineTo(x + w - r, y); caretShape.quadraticCurveTo(x + w, y, x + w, y + r);
+    caretShape.lineTo(x + w, y + h - r); caretShape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+    caretShape.lineTo(x + r, y + h); caretShape.quadraticCurveTo(x, y + h, x, y + h - r);
+    caretShape.lineTo(x, y + r); caretShape.quadraticCurveTo(x, y, x + r, y); }
+  const caretGeo = new THREE.ExtrudeGeometry(caretShape, { depth: 0.22, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 8, curveSegments: 16 });
+  caretGeo.center();
+  const CARET_H = 1.22, CARET_W = 0.72;
+
+  const portalMat = new THREE.ShaderMaterial({
+    vertexShader: OBJ_VERT, side: THREE.DoubleSide, transparent: true,
+    fragmentShader: `
+precision highp float;
+uniform vec2 uRes; uniform float uPhase; uniform float uT; uniform float uReveal; uniform float uOpacity;
+uniform vec3 uAccent; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform vec3 uLight;
+varying vec3 vN; varying vec3 vEye; varying vec3 vWorld;
+float h1(float n){ return fract(sin(n * 127.1) * 43758.5453123); }
+vec3 hyper(vec2 fc){
+  vec2 u = (fc * 2.0 - uRes) / min(uRes.x, uRes.y);
+  float r = length(u);
+  const float RAYS = 260.0;
+  float a = (atan(u.y, u.x) / 6.28318530718 + 0.5) * RAYS;
+  float id = floor(a), cell = abs(fract(a) - 0.5);
+  float ha = h1(id), hb = h1(id + 71.3), hc = h1(id + 13.7);
+  float keepP = mix(0.16, 1.0, uT);
+  float keep = 1.0 - smoothstep(keepP - 0.03, keepP + 0.03, fract((id + 0.5) * 0.61803398875));
+  float len = mix(0.30, 0.62, hc) * mix(0.75, 1.25, uT);
+  float z = log(r + 1e-3) * 1.15 - uPhase * (0.55 + hb) + ha * 17.0;
+  float f = fract(z);
+  float ew = max(fwidth(z) * 1.5, 0.004);
+  float dash = smoothstep(0.0, ew, f) * (1.0 - smoothstep(len - ew, len + ew, f));
+  dash *= mix(0.55, 1.0, f / max(len, 1e-3));
+  float tw = max(fwidth(cell) * 1.5, 0.002);
+  float thin = 1.0 - smoothstep(0.14 - tw, 0.14 + tw, cell);
+  float radial = pow(smoothstep(0.06, 0.9, r), 1.2);
+  vec3 col = mix(mix(uA, uB, smoothstep(0.0, 0.6, hb)), uC, smoothstep(0.72, 1.0, ha));
+  col *= mix(0.8, 1.15, hc);
+  return col * dash * thin * keep * radial * mix(1.2, 3.2, uT);
+}
+void main(){
+  vec3 st = hyper(gl_FragCoord.xy);
+  float reveal = clamp(uReveal, 0.0, 1.0);
+  float lum = dot(st, vec3(0.299, 0.587, 0.114));
+  vec3 base = mix(uAccent, vec3(0.0), smoothstep(0.0, 0.6, reveal));
+  vec3 rgb = base + st * reveal * smoothstep(0.0, 0.35, reveal);
+  vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
+  vec3 e = normalize(vEye), V = -e;
+  vec3 L = normalize(uLight - vWorld);
+  float gloss = mix(1.0, smoothstep(0.1, 0.48, lum), reveal);
+  float lamb = max(dot(n, normalize(vec3(0.35, 0.75, 0.55))), 0.0);
+  rgb *= mix(0.50 + 0.50 * lamb, 1.0, reveal);
+  float spec = pow(max(dot(n, normalize(L + V)), 0.0), 90.0);
+  rgb += spec * 0.8 * gloss * (1.0 - smoothstep(0.0, 0.12, reveal));
+  float fr = pow(1.0 - abs(dot(n, e)), 6.0);
+  rgb += fr * 0.5 * smoothstep(-0.5, 0.5, dot(n, normalize(vec3(-1.0, 0.3, 1.0)))) * gloss;
+  if (uOpacity < 0.01) discard;
+  gl_FragColor = vec4(rgb, uOpacity);
+}`,
+    uniforms: {
+      uRes: { value: new THREE.Vector2(1, 1) }, uPhase: { value: 0 }, uT: { value: 0 }, uReveal: { value: 0 }, uOpacity: { value: 1 },
+      uAccent: { value: new THREE.Color() },
+      uA: { value: new THREE.Color(0.10, 0.95, 0.72) }, uB: { value: new THREE.Color(0.20, 0.62, 1.0) }, uC: { value: new THREE.Color(0.62, 0.38, 1.0) },
+      uLight: { value: new THREE.Vector3(4, 6, 8) },
+    },
+  });
+  const caret = new THREE.Group();
+  const caretSpin = new THREE.Group();
+  const caretMesh = new THREE.Mesh(caretGeo, portalMat);
+  caretMesh.frustumCulled = false; caretMesh.renderOrder = 10; caretMesh.layers.set(1);
+  caretSpin.add(caretMesh); caret.add(caretSpin); scene.add(caret);
+
+  /* ---- 画廊：每张卡一块细分平面，对齐 DOM 槽；滚动卷曲在裁剪空间做，悬停用方块扩散揭示反面 ---- */
+  const cardGeo = new THREE.PlaneGeometry(1, 1, 1, 24);
+  const texLoader = new THREE.TextureLoader();
+  const curlU = { value: 0 };
+  const cardMat = () => new THREE.ShaderMaterial({
+    transparent: true, depthTest: false, depthWrite: false,
+    vertexShader: `
+uniform float uCurl; varying vec2 vUv;
+void main(){
+  vUv = uv;
+  vec4 p = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+  float y = clamp(p.y / p.w, -1.0, 1.0);
+  p.x *= 1.0 - (1.0 - sqrt(max(0.0, 1.0 - y * y))) * uCurl;      // 靠近视口上下缘时向中线收拢 = 圆柱感
+  gl_Position = p;
+}`,
+    fragmentShader: `
+precision highp float;
+uniform sampler2D uFront; uniform sampler2D uHover; uniform float uHp; uniform vec2 uSize; uniform float uHoverAsp; uniform float uReady;
+varying vec2 vUv;
+vec2 coverUv(vec2 uv, float imgAsp, float boxAsp){
+  vec2 s = imgAsp > boxAsp ? vec2(boxAsp / imgAsp, 1.0) : vec2(1.0, imgAsp / boxAsp);
+  return (uv - 0.5) * s + 0.5;
+}
+void main(){
+  vec2 px = vUv * uSize;
+  vec2 q = abs(px - uSize * 0.5) - (uSize * 0.5 - 10.0);
+  float sd = length(max(q, 0.0)) - 10.0;                          // 圆角 10px
+  float alpha = (1.0 - smoothstep(-1.0, 0.5, sd)) * uReady;
+  if (alpha < 0.01) discard;
+  vec3 col = texture2D(uFront, vUv).rgb;
+  if (uHp > 0.001) {
+    const float CELL = 20.0;
+    vec2 cid = floor(px / CELL), cuv = fract(px / CELL);
+    float d = distance((cid + 0.5) * CELL, uSize * 0.5);
+    float band = CELL * 4.0;
+    float grow = clamp((uHp * (length(uSize * 0.5) + band) - d) / band, 0.0, 1.0);
+    grow = grow * grow * (3.0 - 2.0 * grow);
+    vec2 a = abs(cuv - 0.5);
+    float sq = max(a.x, a.y), aa = fwidth(sq) * 1.5;
+    float m = grow >= 0.999 ? 1.0 : (grow <= 0.001 ? 0.0 : 1.0 - smoothstep(0.5 * grow - aa, 0.5 * grow + aa, sq));
+    col = mix(col, texture2D(uHover, coverUv(vUv, uHoverAsp, uSize.x / uSize.y)).rgb, m);
+  }
+  gl_FragColor = vec4(col, alpha);
+}`,
+    uniforms: { uFront: { value: null }, uHover: { value: null }, uHp: { value: 0 }, uSize: { value: new THREE.Vector2(1, 1) }, uHoverAsp: { value: 1.6 }, uReady: { value: 0 }, uCurl: curlU },
+  });
+  let closeOpen = null;
+  const cards = [...document.querySelectorAll('.gcard')].map(el => {
+    const c = { el, stage: el.querySelector('.stage'), hp: 0, target: 0, mat: cardMat() };
+    c.mesh = new THREE.Mesh(cardGeo, c.mat); c.mesh.renderOrder = 1; c.mesh.frustumCulled = false; c.mesh.visible = false; c.mesh.layers.set(1);
+    scene.add(c.mesh);
+    const prep = t => { t.minFilter = THREE.LinearMipmapLinearFilter; t.anisotropy = 4; return t; };
+    texLoader.load(el.dataset.front, t => {
+      c.mat.uniforms.uFront.value = prep(t); c.mat.uniforms.uReady.value = 1;
+      c.stage.style.setProperty('--ar', `${t.image.width} / ${t.image.height}`);
+      layoutScroll();
     });
-    new IntersectionObserver(([e])=>{ visible=e.isIntersecting;
-      if(visible&&!raf){ last=performance.now(); raf=requestAnimationFrame(frame); }
-      if(!visible) ctx.clearRect(0,0,W,H);
-    },{threshold:0}).observe(cv);
-  } else { ctx.clearRect(0,0,W,H); setPrompt(1); }
-})();
+    texLoader.load(el.dataset.hover, t => { c.mat.uniforms.uHover.value = prep(t); c.mat.uniforms.uHoverAsp.value = t.image.width / t.image.height; c.hasHover = true; });
+    if (fine) {
+      el.addEventListener('pointerenter', () => { c.target = 1; });
+      el.addEventListener('pointerleave', () => { c.target = 0; });
+    } else {
+      /* 触屏：第一次点按翻面，翻开后再点才走链接；翻开新卡时旧卡翻回 */
+      const flipBack = () => { c.target = 0; };
+      el.addEventListener('click', e => {
+        if (c.target < 0.5) { e.preventDefault(); if (closeOpen && closeOpen !== flipBack) closeOpen(); c.target = 1; closeOpen = flipBack; }
+      });
+    }
+    return c;
+  });
 
+  /* ---- 3. 流体速度场：只用来扭曲整帧画面 ---- */
+  const FLUID = fine;
+  const SIM_H = 144;
+  let simW = 256, vel, pres, curlRT, divRT;
+  const dbl = (w, h) => { const o = { a: rt(w, h, { type: THREE.HalfFloatType }), b: rt(w, h, { type: THREE.HalfFloatType }) };
+    o.swap = () => { const t = o.a; o.a = o.b; o.b = t; }; return o; };
+  const tx = () => ({ value: new THREE.Vector2(1 / simW, 1 / SIM_H) });
+  const SIM_HEAD = `precision highp float; varying vec2 vUv; uniform vec2 uTx;`;
+  const curlMat = fsMat(SIM_HEAD + ` uniform sampler2D uV;
+void main(){ float L = texture2D(uV, vUv - vec2(uTx.x, 0.)).y, R = texture2D(uV, vUv + vec2(uTx.x, 0.)).y;
+  float T = texture2D(uV, vUv + vec2(0., uTx.y)).x, B = texture2D(uV, vUv - vec2(0., uTx.y)).x;
+  gl_FragColor = vec4(0.5 * (R - L - T + B), 0., 0., 1.); }`, { uV: { value: null }, uTx: tx() });
+  const forceMat = fsMat(SIM_HEAD + ` uniform sampler2D uV; uniform sampler2D uCurl; uniform vec2 uP; uniform vec2 uD; uniform float uAsp;
+void main(){
+  float L = abs(texture2D(uCurl, vUv - vec2(uTx.x, 0.)).x), R = abs(texture2D(uCurl, vUv + vec2(uTx.x, 0.)).x);
+  float T = abs(texture2D(uCurl, vUv + vec2(0., uTx.y)).x), B = abs(texture2D(uCurl, vUv - vec2(0., uTx.y)).x);
+  float C = texture2D(uCurl, vUv).x;
+  vec2 f = vec2(T - B, R - L); float fl = length(f); f = fl > 1e-4 ? f / fl : vec2(0.);
+  f *= 9.0 * C; f.y *= -1.0;
+  vec2 v = texture2D(uV, vUv).xy + f * 0.016;
+  vec2 d = vUv - uP; d.x *= uAsp;
+  v += uD * exp(-dot(d, d) / 0.0035);
+  gl_FragColor = vec4(clamp(v, vec2(-1000.), vec2(1000.)), 0., 1.); }`,
+    { uV: { value: null }, uCurl: { value: null }, uP: { value: new THREE.Vector2(0.5, 0.5) }, uD: { value: new THREE.Vector2() }, uAsp: { value: 1 }, uTx: tx() });
+  const divMat = fsMat(SIM_HEAD + ` uniform sampler2D uV;
+void main(){ float L = texture2D(uV, vUv - vec2(uTx.x, 0.)).x, R = texture2D(uV, vUv + vec2(uTx.x, 0.)).x;
+  float T = texture2D(uV, vUv + vec2(0., uTx.y)).y, B = texture2D(uV, vUv - vec2(0., uTx.y)).y;
+  gl_FragColor = vec4(0.5 * (R - L + T - B), 0., 0., 1.); }`, { uV: { value: null }, uTx: tx() });
+  const presMat = fsMat(SIM_HEAD + ` uniform sampler2D uPr; uniform sampler2D uDiv;
+void main(){ float L = texture2D(uPr, vUv - vec2(uTx.x, 0.)).x, R = texture2D(uPr, vUv + vec2(uTx.x, 0.)).x;
+  float T = texture2D(uPr, vUv + vec2(0., uTx.y)).x, B = texture2D(uPr, vUv - vec2(0., uTx.y)).x;
+  gl_FragColor = vec4((L + R + T + B - texture2D(uDiv, vUv).x) * 0.25, 0., 0., 1.); }`, { uPr: { value: null }, uDiv: { value: null }, uTx: tx() });
+  const gradMat = fsMat(SIM_HEAD + ` uniform sampler2D uPr; uniform sampler2D uV;
+void main(){ float L = texture2D(uPr, vUv - vec2(uTx.x, 0.)).x, R = texture2D(uPr, vUv + vec2(uTx.x, 0.)).x;
+  float T = texture2D(uPr, vUv + vec2(0., uTx.y)).x, B = texture2D(uPr, vUv - vec2(0., uTx.y)).x;
+  gl_FragColor = vec4(texture2D(uV, vUv).xy - vec2(R - L, T - B), 0., 1.); }`, { uPr: { value: null }, uV: { value: null }, uTx: tx() });
+  const advMat = fsMat(SIM_HEAD + ` uniform sampler2D uV;
+void main(){ vec2 v = texture2D(uV, vUv).xy; vec2 c = clamp(vUv - v * uTx * 0.016, 0., 1.);
+  gl_FragColor = vec4(texture2D(uV, c).xy / (1.0 + 2.8 * 0.016), 0., 1.); }`, { uV: { value: null }, uTx: tx() });
+  const simMats = [curlMat, forceMat, divMat, presMat, gradMat, advMat];
+  function stepFluid(pu, pv, du, dv) {
+    curlMat.uniforms.uV.value = vel.a.texture; pass(curlMat, curlRT);
+    forceMat.uniforms.uV.value = vel.a.texture; forceMat.uniforms.uCurl.value = curlRT.texture;
+    forceMat.uniforms.uP.value.set(pu, pv); forceMat.uniforms.uD.value.set(du, dv); forceMat.uniforms.uAsp.value = W / H;
+    pass(forceMat, vel.b); vel.swap();
+    divMat.uniforms.uV.value = vel.a.texture; pass(divMat, divRT);
+    presMat.uniforms.uDiv.value = divRT.texture;
+    for (let i = 0; i < 10; i++) { presMat.uniforms.uPr.value = pres.a.texture; pass(presMat, pres.b); pres.swap(); }
+    gradMat.uniforms.uPr.value = pres.a.texture; gradMat.uniforms.uV.value = vel.a.texture; pass(gradMat, vel.b); vel.swap();
+    advMat.uniforms.uV.value = vel.a.texture; pass(advMat, vel.b); vel.swap();
+  }
+
+  /* ---- 4. 后处理：半分辨率星芒 + 流体位移合成 ---- */
+  const flareMat = fsMat(`
+precision highp float; varying vec2 vUv; uniform sampler2D uScene; uniform vec2 uRes;
+float luma(vec3 c){ return dot(c, vec3(0.2126, 0.7152, 0.0722)); }
+vec3 bright(vec2 uv){ vec3 c = texture2D(uScene, uv).rgb; float m = clamp((luma(c) - 0.93) / 0.07, 0.0, 1.0); m = m * m * (3.0 - 2.0 * m); return c * m * m; }
+vec3 streak(vec2 dir){ vec3 acc = vec3(0.0);
+  for (int i = 1; i <= 10; i++) { float d = float(i) * 1.6; float w = 1.0 / (1.0 + d * 0.2); w *= w;
+    vec3 ramp = mix(vec3(1.0), vec3(0.45, 1.0, 0.85), clamp(d / 16.0, 0.0, 1.0));
+    acc += (bright(vUv + dir * d) + bright(vUv - dir * d)) * w * ramp; }
+  return acc; }
+void main(){ vec2 px = 2.2 / uRes;
+  vec3 f = bright(vUv) * 1.2 + streak(vec2(px.x, 0.0)) + streak(vec2(0.0, px.y));
+  gl_FragColor = vec4(f * 0.42, 1.0); }`, { uScene: { value: null }, uRes: { value: new THREE.Vector2(1, 1) } });
+
+  const finalMat = fsMat(`
+precision highp float; varying vec2 vUv;
+uniform sampler2D uScene; uniform sampler2D uFlare; uniform sampler2D uVel; uniform vec2 uTx; uniform float uFlareK;
+vec3 spectrum(float x){ return cos((x - vec3(0.0, 0.5, 1.0)) * vec3(0.6, 1.0, 0.5) * 3.14); }
+void main(){
+  vec2 d = texture2D(uVel, vUv).xy * uTx * 0.034;
+  float m = length(d);
+  vec3 c;
+  c.r = texture2D(uScene, clamp(vUv - d * 0.75, 0.0, 1.0)).r;
+  c.g = texture2D(uScene, clamp(vUv - d * 1.00, 0.0, 1.0)).g;
+  c.b = texture2D(uScene, clamp(vUv - d * 1.30, 0.0, 1.0)).b;
+  c += texture2D(uFlare, clamp(vUv - d, 0.0, 1.0)).rgb * uFlareK;
+  c += max(spectrum(sin(m * 60.0) * 0.4 + 0.6), 0.0) * smoothstep(0.004, 0.03, m) * 0.10;
+  gl_FragColor = vec4(c, 1.0);
+}`, { uScene: { value: null }, uFlare: { value: null }, uVel: { value: null }, uTx: tx(), uFlareK: { value: 1 } });
+
+  /* ---- 渲染目标与尺寸 ---- */
+  let bgRT, sceneRT, flareRT;
+  let sy = scrollY, stTop = 0, stH = 1;
+  function layoutScroll() {
+    if (VIRT) document.body.style.height = scroller.offsetHeight + 'px';
+    stTop = statement.offsetTop; stH = statement.offsetHeight;
+    measureLetters();
+  }
+  function resize() {
+    W = innerWidth; H = innerHeight;
+    renderer.setSize(W, H, false);
+    PW = renderer.domElement.width; PH = renderer.domElement.height;
+    camera.aspect = W / H; camera.updateProjectionMatrix();
+    [bgRT, sceneRT, flareRT, curlRT, divRT].forEach(t => t && t.dispose());
+    if (vel) { vel.a.dispose(); vel.b.dispose(); pres.a.dispose(); pres.b.dispose(); }
+    bgRT = rt(PW * 0.3, PH * 0.3);
+    sceneRT = new THREE.WebGLRenderTarget(PW, PH, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: true, samples: fine ? 4 : 2 });
+    flareRT = rt(PW / 2, PH / 2);
+    simW = Math.round(SIM_H * W / H);
+    vel = dbl(simW, SIM_H); pres = dbl(simW, SIM_H);
+    curlRT = rt(simW, SIM_H, { type: THREE.HalfFloatType }); divRT = rt(simW, SIM_H, { type: THREE.HalfFloatType });
+    for (const m of [...simMats, finalMat]) m.uniforms.uTx.value.set(1 / simW, 1 / SIM_H);
+    bgMat.uniforms.uRes.value.set(PW, PH); compMat.uniforms.uRes.value.set(PW, PH);
+    glassMat.uniforms.uRes.value.set(PW, PH); portalMat.uniforms.uRes.value.set(PW, PH);
+    flareMat.uniforms.uRes.value.set(PW / 2, PH / 2);
+    layoutScroll();
+  }
+  new ResizeObserver(layoutScroll).observe(scroller);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(layoutScroll);
+
+  /* 页内锚点：虚拟滚动下原生跳转失效，改为手动定位 */
+  document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
+    const id = a.getAttribute('href').slice(1);
+    const el = id ? document.getElementById(id) : null;
+    e.preventDefault();
+    const top = el ? el.getBoundingClientRect().top + (VIRT ? sy : scrollY) - 70 : 0;
+    scrollTo({ top: Math.max(0, top), behavior: VIRT ? 'auto' : 'smooth' });
+  }));
+
+  /* ---- 主题色 ---- */
+  let dark = true;
+  function syncTheme() {
+    dark = getComputedStyle(root).getPropertyValue('--background-deep').trim().startsWith('15');
+    const accent = dark ? 0x00e5a0 : 0x00b87f;
+    if (dark) { bgMat.uniforms.uBase.value.setRGB(0.030, 0.050, 0.046); bgMat.uniforms.uGlow.value.setRGB(0.0, 0.42, 0.31); compMat.uniforms.uDotCol.value.setRGB(0.62, 0.68, 0.66); }
+    else      { bgMat.uniforms.uBase.value.setRGB(0.984, 0.980, 0.957); bgMat.uniforms.uGlow.value.setRGB(0.70, 0.94, 0.85); compMat.uniforms.uDotCol.value.setRGB(0.20, 0.22, 0.20); }
+    compMat.uniforms.uAccent.value.setHex(accent); portalMat.uniforms.uAccent.value.setHex(accent);
+    glassMat.uniforms.uDark.value = dark ? 1 : 0;
+    themeDirty = false;
+  }
+
+  /* ---- 指针 ---- */
+  const ptr = { x: innerWidth / 2, y: innerHeight / 2, sx: 0.5, sy: 0.5, lx: 0, ly: 0, gx: innerWidth / 2, gy: innerHeight / 2, has: false };
+  const trail = Array.from({ length: TRAIL_N }, () => ({ x: -9999, y: -9999, s: 0 }));
+  let trailI = 0, trailCell = '';
+  addEventListener('pointermove', e => {
+    ptr.x = e.clientX; ptr.y = e.clientY;
+    if (!ptr.has) { ptr.lx = ptr.x; ptr.ly = ptr.y; ptr.has = true; }
+    if (coordsEl) coordsEl.textContent = String(e.clientX | 0).padStart(4, '0') + ' X ' + String((innerHeight - e.clientY) | 0).padStart(4, '0') + ' Y';
+    const key = ((e.clientX / 34) | 0) + ':' + (((H - e.clientY) / 34) | 0);
+    if (key !== trailCell) { trailCell = key; trailI = (trailI + 1) % TRAIL_N; trail[trailI] = { x: e.clientX, y: H - e.clientY, s: 1 }; }
+  });
+
+  const toWorld = (px, py) => { const k = worldH() / H; return [(px - W / 2) * k, -(py - H / 2) * k]; };
+  const rectC = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, top: r.top, bottom: r.bottom }; };
+
+  /* ---- 每帧 ---- */
+  let last = performance.now(), time = 0, caretScale = 0.3, started = false, titleShown = false, inPortal = false, lastMeasure = 0, curl = 0;
+  function frame(now) {
+    const dt = Math.min(Math.max((now - last) / 1000, 0.001), 0.05); last = now; time += dt;
+    if (themeDirty) syncTheme();
+
+    /* 滚动 */
+    const prevSy = sy;
+    if (VIRT) {
+      sy = damp(sy, scrollY, 7.5, dt); if (Math.abs(sy - scrollY) < 0.05) sy = scrollY;
+      scroller.style.transform = `translate3d(0,${-sy}px,0)`;
+    } else sy = scrollY;
+    const pinSpan = Math.max(1, stH - H);
+    const q = clamp((sy - stTop) / pinSpan, 0, 1);
+    if (VIRT) stagePin.style.transform = `translate3d(0,${clamp(sy - stTop, 0, pinSpan)}px,0)`;
+    curl = damp(curl, clamp(Math.abs(sy - prevSy) / dt / 9000, 0, 0.30), 5, dt);
+    curlU.value = curl;
+
+    /* 指针平滑、光源 */
+    ptr.sx = damp(ptr.sx, ptr.x / W, 5, dt); ptr.sy = damp(ptr.sy, 1 - ptr.y / H, 5, dt);
+    ptr.gx = damp(ptr.gx, ptr.x, 10, dt); ptr.gy = damp(ptr.gy, ptr.y, 10, dt);
+    const lightX = (ptr.sx - 0.5) * 14, lightY = (ptr.sy - 0.5) * 9 + 2.5;
+    glassMat.uniforms.uLight.value.set(lightX, lightY, 7); portalMat.uniforms.uLight.value.set(lightX, lightY, 7);
+
+    /* 首屏大字：字母波浪 + 透字渐变 */
+    if (letters.length && ptr.has && sy < H) {
+      if (now - lastMeasure > 400) { measureLetters(); lastMeasure = now; }
+      const argb = dark ? '0,229,160' : '0,184,127';
+      for (const L of letters) {
+        const dl = Math.max(Math.hypot(L.x - ptr.gx, L.y - ptr.gy), 1);
+        const n = Math.max(0, 1 - dl / 210);
+        L.w = damp(L.w, 110 + n * 40, 14, dt); L.g = damp(L.g, 800 + n * 100, 14, dt);
+        if (Math.abs(L.w - L.lw) > 0.4 || Math.abs(L.g - L.lg) > 4) {
+          L.el.style.fontVariationSettings = `"wdth" ${L.w.toFixed(1)}, "wght" ${Math.round(L.g)}`;
+          const dx = (L.x - ptr.gx) / dl, dy = (L.y - ptr.gy) / dl, s = 1.5 + n * 6;
+          L.el.style.textShadow = `${(dx * s).toFixed(1)}px ${(dy * s).toFixed(1)}px ${(1 + n * 3).toFixed(1)}px rgba(0,0,0,.5), ${(-dx * 1.4).toFixed(1)}px ${(-dy * 1.4).toFixed(1)}px 1px rgba(${argb},${(0.15 + n * 0.45).toFixed(2)})`;
+          L.lw = L.w; L.lg = L.g;
+        }
+      }
+      const tr = heroTitle.getBoundingClientRect();
+      heroTitle.style.setProperty('--gx', `${(ptr.gx - tr.left).toFixed(1)}px`);
+      heroTitle.style.setProperty('--gy', `${(ptr.gy - tr.top).toFixed(1)}px`);
+    }
+
+    /* 宣言区：方块光标的编排 */
+    const k = worldH() / H;
+    const grow = sstep(0.0, 0.22, q), shrink = sstep(0.76, 1.0, q);
+    const enter = sstep(stTop - H, stTop - H * 0.1, sy);
+    const home = rectC(caretHome), end = rectC(caretEnd);
+    const homeS = home.h * k / CARET_H, endS = Math.max(end.h, 8) * k / CARET_H;
+    const fullS = Math.hypot(worldH(), worldH() * W / H) * 1.5 / CARET_W;
+    const restS = q < 0.5 ? homeS : endS;
+    const targetS = mix(restS, fullS, grow * (1 - shrink));
+    caretScale = started ? damp(caretScale, targetS, 14, dt) : targetS;
+    const reveal = clamp((caretScale - restS) / (fullS - restS), 0, 1);
+    let cx = mix(home.x, W / 2, enter), cy = mix(home.y, H / 2, enter);
+    cx = mix(cx, end.x, shrink); cy = mix(cy, end.y, shrink);
+    const [wx, wy] = toWorld(cx, cy);
+    const landed = q > 0.5 ? 1 : 0;
+    const tilt = (1 - sstep(0.0, 0.12, reveal)) * (1 - landed * sstep(0.9, 1.0, shrink));
+    caret.position.set(wx, wy + Math.sin(time * 1.2) * 0.05 * tilt, 0);
+    caret.scale.setScalar(caretScale);
+    caret.visible = reveal > 0.001 || (cy > -200 && cy < H + 200);
+    const spin = q < 0.5 ? clamp(reveal / 0.4, 0, 1) * Math.PI * 2 : Math.PI * 2 + clamp((shrink - 0.6) / 0.4, 0, 1) * Math.PI * 2;
+    caretSpin.rotation.set(-0.28 * tilt, spin + (0.62 + Math.sin(time * 0.6) * 0.12) * tilt, 0.10 * tilt);
+    portalMat.uniforms.uReveal.value = reveal;
+    portalMat.uniforms.uT.value = sstep(0.08, 0.72, q);
+    portalMat.uniforms.uPhase.value = q * 9.0 + time * 0.22;
+    portalMat.uniforms.uOpacity.value = q >= 0.995 ? ((Math.floor(time / 0.53) % 2) ? 0 : 1) : 1;
+    if ((reveal > 0.5) !== inPortal) { inPortal = reveal > 0.5; root.classList.toggle('in-portal', inPortal); }
+
+    const titleA = sstep(0.14, 0.24, q) * (1 - sstep(0.62, 0.72, q));
+    stTitle.style.opacity = titleA.toFixed(3);
+    if (titleA > 0.02 && !titleShown) { titleShown = true; scramble(stTitle, { letterDelay: 34, scrambleTime: 260 }); }
+    if (titleA <= 0.02) titleShown = false;
+    const typeP = sstep(0.80, 0.97, q), nCh = Math.round(typeP * PROMPT.length);
+    if (pline.textContent.length !== nCh) pline.textContent = PROMPT.slice(0, nCh);
+    promptEl.style.opacity = typeP > 0 ? '1' : '0';
+
+    /* 玻璃字跟随 DOM 锚点 */
+    const gh = rectC(glassHome);
+    glass.visible = gh.bottom > -80 && gh.top < H + 80;
+    if (glass.visible) {
+      const [gx, gy] = toWorld(gh.x, gh.y);
+      glass.position.set(gx, gy + Math.sin(time * 1.2) * 0.07 + Math.sin(time * 0.6) * 0.03, 0);
+      glass.scale.setScalar(Math.min(gh.w * k / 4.5, gh.h * k / 2.7));
+      const sp = clamp(sy / H, 0, 1.5);
+      glass.rotation.set(-0.12 + (ptr.sy - 0.5) * 0.25 - sp * 0.5, -0.38 + (ptr.sx - 0.5) * 0.45 + sp * 0.9, 0.04);
+    }
+
+    /* 画廊卡片对齐 DOM 槽 */
+    for (const c of cards) {
+      const r = c.stage.getBoundingClientRect();
+      const vis = r.bottom > -40 && r.top < H + 40 && r.width > 0;
+      c.mesh.visible = vis;
+      c.hp = damp(c.hp, c.hasHover ? c.target : 0, 6, dt);
+      if (!vis) continue;
+      const [x, y] = toWorld(r.left + r.width / 2, r.top + r.height / 2);
+      c.mesh.position.set(x, y, 0); c.mesh.scale.set(r.width * k, r.height * k, 1);
+      c.mat.uniforms.uSize.value.set(r.width, r.height); c.mat.uniforms.uHp.value = c.hp;
+    }
+
+    /* 流体 + 指针拖尾 */
+    if (FLUID) {
+      const du = (ptr.x - ptr.lx) / W, dv = -(ptr.y - ptr.ly) / H; ptr.lx = ptr.x; ptr.ly = ptr.y;
+      stepFluid(ptr.x / W, 1 - ptr.y / H, du * simW / 0.016 * 0.22, dv * SIM_H / 0.016 * 0.22);
+    }
+    trail.forEach((t, i) => { t.s = Math.max(0, t.s - dt * 1.8); compMat.uniforms.uTrail.value[i].set(t.x * DPR, t.y * DPR); compMat.uniforms.uTrailS.value[i] = t.s; });
+
+    /* 渲染 */
+    bgMat.uniforms.uTime.value = time; bgMat.uniforms.uPos.value.set(ptr.sx, ptr.sy);
+    pass(bgMat, bgRT);
+    compMat.uniforms.uBg.value = bgRT.texture; glassMat.uniforms.uBg.value = bgRT.texture;
+    renderer.setRenderTarget(sceneRT); renderer.clear();
+    pass(compMat, sceneRT);
+    renderer.clearDepth();
+    camera.layers.set(0); renderer.render(scene, camera);               // 玻璃字
+    flareMat.uniforms.uScene.value = sceneRT.texture; pass(flareMat, flareRT);   // 星芒只取玻璃高光，不吃图片里的白
+    renderer.setRenderTarget(sceneRT);
+    camera.layers.set(1); renderer.render(scene, camera);               // 画廊卡片 + 方块光标
+    finalMat.uniforms.uScene.value = sceneRT.texture; finalMat.uniforms.uFlare.value = flareRT.texture; finalMat.uniforms.uVel.value = vel.a.texture;
+    finalMat.uniforms.uFlareK.value = dark ? 1 - reveal : 0;
+    pass(finalMat, null);
+
+    started = true;
+    requestAnimationFrame(frame);
+  }
+
+  resize();
+  addEventListener('resize', resize);
+  window.__site = { get q() { return clamp((sy - stTop) / Math.max(1, stH - H), 0, 1); }, get stTop() { return stTop; }, get stH() { return stH; } };
+  requestAnimationFrame(frame);
+}
 </script>
 </body>
 </html>
