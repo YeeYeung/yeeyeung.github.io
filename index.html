@@ -397,6 +397,13 @@ html.lite .gcard .fallback { display: block; }
 footer .display { width: fit-content; }
 footer .display .r { text-align: left; padding-left: 1.35em; }
 footer .display span:nth-child(3) { padding-left: .45em; }
+
+/* 宽屏：内容收进约 78rem 的居中版心（所有区块都用 --gutter 做左右边距，改这一处即可） */
+:root { --gutter: max(clamp(1rem, 4vw, 3.5rem), calc((100vw - 78rem) / 2)); }
+@media (min-width: 52rem) {
+  #glass-home { right: var(--gutter); width: min(50vw, 40rem); }
+  #caret-home { right: calc(var(--gutter) + 4.5rem); }
+}
 </style>
 </head>
 <body>
@@ -1127,11 +1134,11 @@ void main(){ vec4 c = texture2D(uMap, uRect.xy + vUv * uRect.zw); if (c.a * uAlp
     let k = (Math.random() * ST.length) | 0; if (k === stLast) k = (k + 1) % ST.length; stLast = k;
     s.mat.uniforms.uRect.value.set((k % ST_COLS) / ST_COLS, 1 - (((k / ST_COLS) | 0) + 1) / ST_ROWS, 1 / ST_COLS, 1 / ST_ROWS);
     s.live = true; s.age = 0; s.x = x; s.y = y;
-    s.size = (LITE ? 66 : 104) * (0.8 + Math.random() * 0.5);
+    s.size = (LITE ? 88 : 150) * (0.8 + Math.random() * 0.5);
     s.vx = burst ? (Math.random() - 0.5) * 520 : (Math.random() - 0.5) * 40;
-    s.vy = burst ? -260 - Math.random() * 320 : 60 + Math.random() * 80;
-    s.rot = Math.random() * 6.283; s.rs = (Math.random() - 0.5) * 3.2;
-    s.ph = Math.random() * 6.283; s.amp = 20 + Math.random() * 60; s.term = 300 + Math.random() * 260;
+    s.vy = burst ? -170 - Math.random() * 220 : 30 + Math.random() * 40;
+    s.rot = Math.random() * 6.283; s.rs = (Math.random() - 0.5) * 1.6;
+    s.ph = Math.random() * 6.283; s.amp = 16 + Math.random() * 44; s.term = 130 + Math.random() * 120;
     s.mesh.visible = true;
   }
   addEventListener('click', e => {
@@ -1146,16 +1153,16 @@ void main(){ vec4 c = texture2D(uMap, uRect.xy + vUv * uRect.zw); if (c.a * uAlp
     const fr = footerEl.getBoundingClientRect();
     if (fr.top < H * 0.75 && fr.bottom > H * 0.3) {
       rainAcc += dt;
-      if (rainAcc > 0.42) { rainAcc = 0; spawnSticker(W * (0.08 + Math.random() * 0.84), -70, false); }
+      if (rainAcc > 0.85) { rainAcc = 0; spawnSticker(W * (0.08 + Math.random() * 0.84), -70, false); }
     }
     for (const s of stickers) {
       if (!s.live) continue;
       s.age += dt;
-      s.vy = Math.min(s.vy + 900 * dt, s.term);
+      s.vy = Math.min(s.vy + 380 * dt, s.term);
       s.vx *= Math.exp(-1.6 * dt);
-      s.x += (s.vx + Math.sin(time * 1.9 + s.ph) * s.amp) * dt;
+      s.x += (s.vx + Math.sin(time * 1.1 + s.ph) * s.amp) * dt;
       s.y += s.vy * dt; s.rot += s.rs * dt;
-      if (s.y > H + 120) { s.live = false; s.mesh.visible = false; continue; }
+      if (s.y > H + 160) { s.live = false; s.mesh.visible = false; continue; }
       const [wx, wy] = toWorld(s.x, s.y);
       s.mesh.position.set(wx, wy, 0); s.mesh.rotation.z = s.rot;
       s.mesh.scale.setScalar(s.size * k * Math.min(1, s.age * 6));
