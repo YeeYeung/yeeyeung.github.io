@@ -403,6 +403,11 @@ footer .display .r { text-align: center; padding-left: 0; }
   #glass-home { right: var(--gutter); width: min(50vw, 40rem); }
   #caret-home { right: calc(var(--gutter) + 4.5rem); }
 }
+
+/* 页底玻璃字「n+1」的锚点：垫在居中大字后面，比文字大一圈 */
+#glass-end { position: absolute; left: 50%; top: 37%; width: min(84vw, 62rem); height: 64vh; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+footer .display { position: relative; z-index: 1; text-shadow: 0 2px 26px rgba(0, 0, 0, .5); margin-top: 22vh; }
+@media (max-width: 52rem) { #glass-end { width: 94vw; height: 30vh; top: 30%; } footer .display { margin-top: 16vh; } }
 </style>
 </head>
 <body>
@@ -628,6 +633,7 @@ footer .display .r { text-align: center; padding-left: 0; }
 </main>
 
 <footer id="contact">
+  <div id="glass-end" aria-hidden="true"></div>
   <p class="display">
     <span class="reveal">Let's</span>
     <span class="reveal r" style="--d:.1s">compare</span>
@@ -938,6 +944,20 @@ void main(){
   glassInner.add(tube([[3.35, 0.5, 0], [3.62, 0.72, 0.03], [3.86, 1.0, 0.0], [3.9, 0.3, 0.04], [3.9, -1, 0]]));
   glassInner.position.set(-1.95, 0, 0);
   scene.add(glass);
+
+  /* 页底的「n+1」：和开头的「n=1」同一套玻璃管，等号换成加号 */
+  const glassEnd = new THREE.Group();
+  const glassEndInner = new THREE.Group();
+  glassEnd.add(glassEndInner);
+  glassEndInner.add(tube([[0, 1.0, 0], [0.0, 0.0, 0.04], [0, -1, 0]]));
+  glassEndInner.add(tube([[0.0, 0.25, 0.02], [0.2, 0.78, 0.0], [0.55, 0.98, -0.04], [0.9, 0.72, 0.0], [1.02, 0.1, 0.05], [1.02, -1, 0]]));
+  glassEndInner.add(tube([[1.70, 0.0, 0.08], [2.2, 0.03, 0.13], [2.70, 0.0, 0.08]], 0.2));
+  glassEndInner.add(tube([[2.2, 0.50, -0.05], [2.2, 0.0, -0.02], [2.2, -0.50, -0.05]], 0.2));
+  glassEndInner.add(tube([[3.35, 0.5, 0], [3.62, 0.72, 0.03], [3.86, 1.0, 0.0], [3.9, 0.3, 0.04], [3.9, -1, 0]]));
+  glassEndInner.position.set(-1.95, 0, 0);
+  glassEnd.visible = false;
+  scene.add(glassEnd);
+  const glassEndEl = document.getElementById('glass-end');
 
   /* 方块光标：静止时是强调色实体；放大吞屏后表面变成屏幕空间的星流 */
   const caretShape = new THREE.Shape();
@@ -1408,6 +1428,17 @@ void main(){
       glass.scale.setScalar(Math.min(gh.w * k / 4.5, gh.h * k / 2.7));
       const sp = clamp(sy / H, 0, 1.5);
       glass.rotation.set(-0.12 + (ptr.sy - 0.5) * 0.25 - sp * 0.5, -0.38 + (ptr.sx - 0.5) * 0.45 + sp * 0.9, 0.04);
+    }
+
+    /* 页底玻璃字「n+1」：进入视口时从侧倾转正 */
+    const ge = rectC(glassEndEl);
+    glassEnd.visible = ge.bottom > -80 && ge.top < H + 80;
+    if (glassEnd.visible) {
+      const [ex, ey] = toWorld(ge.x, ge.y);
+      glassEnd.position.set(ex, ey + Math.sin(time * 1.0) * 0.06 + Math.sin(time * 0.5) * 0.03, 0);
+      glassEnd.scale.setScalar(Math.min(ge.w * k / 4.5, ge.h * k / 2.7));
+      const settle = 1 - sstep(H * 0.15, H * 1.05, ge.y - H / 2);          // 0=刚露头 1=居中
+      glassEnd.rotation.set(0.10 + (ptr.sy - 0.5) * 0.22 + (1 - settle) * 0.55, 0.30 + (ptr.sx - 0.5) * 0.40 - (1 - settle) * 0.9, -0.03);
     }
 
     /* 画廊卡片对齐 DOM 槽 */
