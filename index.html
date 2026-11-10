@@ -1,7 +1,8 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8">
+<meta name="color-scheme" content="dark">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Yi Yang (Yee Yeung) — Life is an n-of-1 trial</title>
 <meta name="description" content="Clinical research physician & developer. Medicine by training, data by degree, code by choice. Builder of Brew Science and TooLite.">
@@ -365,6 +366,12 @@ html:not(.gl) .prompt { opacity: 1; }
 html:not(.gl) #caret-end { background: var(--accent); }
 
 @media (max-width: 48rem) { .hud-bottom .geo { display: none; } }
+
+/* 触屏轻量路径：画廊用普通图片，点按淡入反面 */
+html.lite .gcard .fallback { display: block; }
+.gcard .hoverimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+.gcard.flipped .hoverimg { opacity: 1; }
+@supports (height: 100lvh) { html.lite #gl { height: 100lvh; } }
 </style>
 </head>
 <body>
@@ -377,7 +384,6 @@ html:not(.gl) #caret-end { background: var(--accent); }
     <a href="#products">Products</a>
     <a href="#experience">Experience</a>
     <a href="#contact">Contact</a>
-    <button type="button" id="theme" aria-label="Switch theme">THEME[A]</button>
   </nav>
 </header>
 
@@ -630,21 +636,8 @@ const tick = () => {
 };
 tick(); setInterval(tick, 30_000);
 
-/* ---- 主题三态：auto → dark → light ---- */
-const themeBtn = document.getElementById('theme');
-const modes = [null, 'dark', 'light'];
-let mode = Math.max(0, modes.indexOf(localStorage.getItem('theme')));
+/* 只有深色主题 */
 let themeDirty = true;
-const applyTheme = () => {
-  const m = modes[mode];
-  if (m) { root.dataset.theme = m; localStorage.setItem('theme', m); }
-  else   { delete root.dataset.theme; localStorage.removeItem('theme'); }
-  themeBtn.textContent = `THEME[${m ? m[0].toUpperCase() : 'A'}]`;
-  themeDirty = true;
-};
-themeBtn.addEventListener('click', () => { mode = (mode + 1) % 3; applyTheme(); });
-applyTheme();
-matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { themeDirty = true; });
 
 /* ---- 入场动画 ---- */
 const io = new IntersectionObserver(es => es.forEach(e => {
@@ -723,7 +716,7 @@ let renderer = null;
 if (!reduced) {
   try {
     THREE.ColorManagement.enabled = false;        // 着色器直接写显示色
-    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: false, alpha: false, powerPreference: 'high-performance' });
+    renderer = new THREE.WebGLRenderer({ canvas: document.getElementById('gl'), antialias: !fine, alpha: false, powerPreference: 'high-performance' });
     if (!renderer.capabilities.isWebGL2) throw new Error('webgl2 required');
   } catch (_) { renderer = null; }
 }
@@ -734,6 +727,9 @@ if (!renderer) {
   root.classList.add('gl');
   const VIRT = fine;                               // 鼠标设备用阻尼虚拟滚动；触屏保留原生滚动
   if (VIRT) root.classList.add('virt');
+  const LITE = !fine;                              // 触屏走轻量路径：直出屏幕、无流体/星芒/画布画廊
+  if (LITE) root.classList.add('lite');
+  const canvas = renderer.domElement;
   renderer.autoClear = false;
   const DPR = Math.min(devicePixelRatio || 1, fine ? 2 : 1.5);
   renderer.setPixelRatio(DPR);
@@ -789,6 +785,7 @@ void main(){
   });
 
   const TRAIL_N = 12;
+  const BLUR = LITE ? 5 : 12;
   const compMat = fsMat(`
 precision highp float;
 varying vec2 vUv;
@@ -798,24 +795,24 @@ uniform vec3 uAccent; uniform vec3 uDotCol; uniform float uDotA;
 void main(){
   vec3 c = vec3(0.0); float r = 1.0;
   vec2 px = vec2(uRes.y / uRes.x, 1.0) * 0.012;
-  for (int i = 0; i < 12; i++) {
+  for (int i = 0; i < ${BLUR}; i++) {
     float th = float(i) * 2.39996323; r += 1.0 / r;
     c += texture2D(uBg, vUv + (r - 1.0) * vec2(cos(th), sin(th)) * px).rgb;
   }
-  c /= 12.0;
+  c /= ${BLUR}.0;
   float cell = 34.0 * uDpr;
   vec2 fc = gl_FragCoord.xy;
   vec2 id = floor(fc / cell), cuv = fract(fc / cell);
   float d = distance(cuv, vec2(0.5));
   float aa = fwidth(d) * 1.5;
   c = mix(c, uDotCol, smoothstep(0.055, 0.055 - aa, d) * uDotA);
-  float hl = 0.0;
+  ${LITE ? '' : `float hl = 0.0;
   for (int i = 0; i < ${TRAIL_N}; i++) {
     vec2 pc = floor(uTrail[i] / cell);
     vec2 dd = abs(id - pc);
     hl = max(hl, (1.0 - step(0.5, max(dd.x, dd.y))) * uTrailS[i]);
   }
-  c = mix(c, uAccent, smoothstep(0.30, 0.30 - aa, d) * hl);
+  c = mix(c, uAccent, smoothstep(0.30, 0.30 - aa, d) * hl);`}
   gl_FragColor = vec4(c, 1.0);
 }`, {
     uBg: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uDpr: { value: DPR },
@@ -842,6 +839,7 @@ void main(){
   gl_Position = projectionMatrix * viewMatrix * wp;
 }`;
 
+  const GLASS_LOOPS = LITE ? 2 : 6;
   /* 玻璃：逐通道折射背景贴图 + 体色 + 跟随鼠标的高光 + 侧向菲涅尔 */
   const glassMat = new THREE.ShaderMaterial({
     vertexShader: OBJ_VERT,
@@ -857,13 +855,13 @@ void main(){
   vec3 rR = refract(e, n, 1.0 / 1.15), rG = refract(e, n, 1.0 / 1.18), rB = refract(e, n, 1.0 / 1.22);
   float noise = rnd(uv) * 0.025;
   vec3 col = vec3(0.0);
-  for (int i = 0; i < 6; i++) {
-    float s = float(i) / 6.0 * 0.1 + noise;
+  for (int i = 0; i < ${GLASS_LOOPS}; i++) {
+    float s = float(i) / ${GLASS_LOOPS}.0 * 0.1 + noise;
     col.r += texture2D(uBg, uv + rR.xy * (0.24 + s * 1.0) * 0.30).r;
     col.g += texture2D(uBg, uv + rG.xy * (0.24 + s * 2.0) * 0.30).g;
     col.b += texture2D(uBg, uv + rB.xy * (0.24 + s * 3.0) * 0.30).b;
   }
-  col /= 6.0;
+  col /= ${GLASS_LOOPS}.0;
   float ndv = abs(dot(n, e));
   float thick = 1.0 - ndv;
   float g = clamp((vY - uYRange.x) / (uYRange.y - uYRange.x), 0.0, 1.0);
@@ -1030,7 +1028,7 @@ void main(){
     uniforms: { uFront: { value: null }, uHover: { value: null }, uHp: { value: 0 }, uSize: { value: new THREE.Vector2(1, 1) }, uHoverAsp: { value: 1.6 }, uReady: { value: 0 }, uCurl: curlU },
   });
   let closeOpen = null;
-  const cards = [...document.querySelectorAll('.gcard')].map(el => {
+  const cards = (LITE ? [] : [...document.querySelectorAll('.gcard')]).map(el => {
     const c = { el, stage: el.querySelector('.stage'), hp: 0, target: 0, mat: cardMat() };
     c.mesh = new THREE.Mesh(cardGeo, c.mat); c.mesh.renderOrder = 1; c.mesh.frustumCulled = false; c.mesh.visible = false; c.mesh.layers.set(1);
     scene.add(c.mesh);
@@ -1138,20 +1136,25 @@ void main(){
 
   /* ---- 渲染目标与尺寸 ---- */
   let bgRT, sceneRT, flareRT;
-  let sy = scrollY, stTop = 0, stH = 1;
+  let sy = scrollY, stTop = 0, stH = 1, VH = 1, lastW = -1;
   function layoutScroll() {
     if (VIRT) document.body.style.height = scroller.offsetHeight + 'px';
-    stTop = statement.offsetTop; stH = statement.offsetHeight;
+    stTop = statement.offsetTop; stH = statement.offsetHeight; VH = stagePin.offsetHeight || innerHeight;
     measureLetters();
   }
   function resize() {
-    W = innerWidth; H = innerHeight;
+    const cw = canvas.clientWidth || innerWidth, ch = canvas.clientHeight || innerHeight;
+    if (LITE && cw === lastW) { layoutScroll(); return; }      // 手机地址栏收放只改高度：不重建缓冲
+    lastW = cw; W = cw; H = ch;
     renderer.setSize(W, H, false);
     PW = renderer.domElement.width; PH = renderer.domElement.height;
     camera.aspect = W / H; camera.updateProjectionMatrix();
     [bgRT, sceneRT, flareRT, curlRT, divRT].forEach(t => t && t.dispose());
     if (vel) { vel.a.dispose(); vel.b.dispose(); pres.a.dispose(); pres.b.dispose(); }
     bgRT = rt(PW * 0.3, PH * 0.3);
+    bgMat.uniforms.uRes.value.set(PW, PH); compMat.uniforms.uRes.value.set(PW, PH);
+    glassMat.uniforms.uRes.value.set(PW, PH); portalMat.uniforms.uRes.value.set(PW, PH);
+    if (LITE) { layoutScroll(); return; }
     sceneRT = new THREE.WebGLRenderTarget(PW, PH, { minFilter: THREE.LinearFilter, magFilter: THREE.LinearFilter, depthBuffer: true, samples: fine ? 4 : 2 });
     flareRT = rt(PW / 2, PH / 2);
     simW = Math.round(SIM_H * W / H);
@@ -1176,14 +1179,12 @@ void main(){
   }));
 
   /* ---- 主题色 ---- */
-  let dark = true;
+  const dark = true;
   function syncTheme() {
-    dark = getComputedStyle(root).getPropertyValue('--background-deep').trim().startsWith('15');
-    const accent = dark ? 0x00e5a0 : 0x00b87f;
-    if (dark) { bgMat.uniforms.uBase.value.setRGB(0.030, 0.050, 0.046); bgMat.uniforms.uGlow.value.setRGB(0.0, 0.42, 0.31); compMat.uniforms.uDotCol.value.setRGB(0.62, 0.68, 0.66); }
-    else      { bgMat.uniforms.uBase.value.setRGB(0.984, 0.980, 0.957); bgMat.uniforms.uGlow.value.setRGB(0.70, 0.94, 0.85); compMat.uniforms.uDotCol.value.setRGB(0.20, 0.22, 0.20); }
-    compMat.uniforms.uAccent.value.setHex(accent); portalMat.uniforms.uAccent.value.setHex(accent);
-    glassMat.uniforms.uDark.value = dark ? 1 : 0;
+    bgMat.uniforms.uBase.value.setRGB(0.030, 0.050, 0.046); bgMat.uniforms.uGlow.value.setRGB(0.0, 0.42, 0.31);
+    compMat.uniforms.uDotCol.value.setRGB(0.62, 0.68, 0.66);
+    compMat.uniforms.uAccent.value.setHex(0x00e5a0); portalMat.uniforms.uAccent.value.setHex(0x00e5a0);
+    glassMat.uniforms.uDark.value = 1;
     themeDirty = false;
   }
 
@@ -1214,7 +1215,7 @@ void main(){
       sy = damp(sy, scrollY, 7.5, dt); if (Math.abs(sy - scrollY) < 0.05) sy = scrollY;
       scroller.style.transform = `translate3d(0,${-sy}px,0)`;
     } else sy = scrollY;
-    const pinSpan = Math.max(1, stH - H);
+    const pinSpan = Math.max(1, stH - VH);
     const q = clamp((sy - stTop) / pinSpan, 0, 1);
     if (VIRT) stagePin.style.transform = `translate3d(0,${clamp(sy - stTop, 0, pinSpan)}px,0)`;
     curl = damp(curl, clamp(Math.abs(sy - prevSy) / dt / 9000, 0, 0.30), 5, dt);
@@ -1229,7 +1230,7 @@ void main(){
     /* 首屏大字：字母波浪 + 透字渐变 */
     if (letters.length && ptr.has && sy < H) {
       if (now - lastMeasure > 400) { measureLetters(); lastMeasure = now; }
-      const argb = dark ? '0,229,160' : '0,184,127';
+      const argb = '0,229,160';
       for (const L of letters) {
         const dl = Math.max(Math.hypot(L.x - ptr.gx, L.y - ptr.gy), 1);
         const n = Math.max(0, 1 - dl / 210);
@@ -1315,6 +1316,13 @@ void main(){
     bgMat.uniforms.uTime.value = time; bgMat.uniforms.uPos.value.set(ptr.sx, ptr.sy);
     pass(bgMat, bgRT);
     compMat.uniforms.uBg.value = bgRT.texture; glassMat.uniforms.uBg.value = bgRT.texture;
+    if (LITE) {                                                         // 轻量路径：直接画到屏幕
+      renderer.setRenderTarget(null); renderer.clear();
+      pass(compMat, null);
+      renderer.clearDepth();
+      camera.layers.enableAll(); renderer.render(scene, camera);
+      started = true; requestAnimationFrame(frame); return;
+    }
     renderer.setRenderTarget(sceneRT); renderer.clear();
     pass(compMat, sceneRT);
     renderer.clearDepth();
@@ -1323,16 +1331,29 @@ void main(){
     renderer.setRenderTarget(sceneRT);
     camera.layers.set(1); renderer.render(scene, camera);               // 画廊卡片 + 方块光标
     finalMat.uniforms.uScene.value = sceneRT.texture; finalMat.uniforms.uFlare.value = flareRT.texture; finalMat.uniforms.uVel.value = vel.a.texture;
-    finalMat.uniforms.uFlareK.value = dark ? 1 - reveal : 0;
+    finalMat.uniforms.uFlareK.value = 1 - reveal;
     pass(finalMat, null);
 
     started = true;
     requestAnimationFrame(frame);
   }
 
+  if (LITE) {
+    /* 手机画廊用普通图片：跟手不掉帧；点按淡入反面，翻开后再点才走链接 */
+    document.querySelectorAll('.gcard').forEach(el => {
+      const stage = el.querySelector('.stage'), fb = el.querySelector('.fallback');
+      const setAr = () => { if (fb.naturalWidth) { stage.style.setProperty('--ar', `${fb.naturalWidth} / ${fb.naturalHeight}`); layoutScroll(); } };
+      if (fb.complete) setAr(); else fb.addEventListener('load', setAr);
+      const hv = new Image(); hv.className = 'hoverimg'; hv.alt = ''; hv.loading = 'lazy'; hv.src = el.dataset.hover; stage.appendChild(hv);
+      const flipBack = () => el.classList.remove('flipped');
+      el.addEventListener('click', e => {
+        if (!el.classList.contains('flipped')) { e.preventDefault(); if (closeOpen && closeOpen !== flipBack) closeOpen(); el.classList.add('flipped'); closeOpen = flipBack; }
+      });
+    });
+  }
   resize();
   addEventListener('resize', resize);
-  window.__site = { get q() { return clamp((sy - stTop) / Math.max(1, stH - H), 0, 1); }, get stTop() { return stTop; }, get stH() { return stH; } };
+  window.__site = { get q() { return clamp((sy - stTop) / Math.max(1, stH - VH), 0, 1); }, get stTop() { return stTop; }, get stH() { return stH; } };
   requestAnimationFrame(frame);
 }
 </script>
