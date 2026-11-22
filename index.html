@@ -409,6 +409,14 @@ footer .display span:nth-child(3) { padding-left: .45em; }
 #glass-end { position: absolute; left: 50%; top: 41%; width: min(60vw, 50rem); height: 50vh; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
 footer .display { position: relative; z-index: 1; text-shadow: 0 2px 26px rgba(0, 0, 0, .5); margin-top: 16vh; }
 @media (max-width: 52rem) { #glass-end { width: 92vw; height: 28vh; top: 41%; } footer .display { margin-top: 12vh; } }
+
+/* ===== 飞船：首屏停泊位与结尾停靠位 ===== */
+#caret-home { width: 150px; height: 150px; bottom: 10%; }
+@media (min-width: 52rem) { #caret-home { right: calc(var(--gutter) + 1.5rem); } }
+@media (max-width: 52rem) { #caret-home { width: 78px; height: 78px; right: 5%; top: 75%; bottom: auto; } }
+#ship-end { position: absolute; left: 50%; top: calc(50% - 10.5rem); width: 130px; height: 130px; margin-left: -65px; pointer-events: none; }
+@media (max-width: 52rem) { #ship-end { width: 84px; height: 84px; margin-left: -42px; top: calc(50% - 8rem); } }
+html.gl #caret-end { background: var(--accent); animation: caret-blink 1.06s steps(1) infinite; box-shadow: 0 0 14px rgba(var(--accent-glow), .55); }
 </style>
 </head>
 <body>
@@ -627,6 +635,7 @@ footer .display { position: relative; z-index: 1; text-shadow: 0 2px 26px rgba(0
 
   <section class="statement" id="statement">
     <div class="stage-pin" id="stage-pin">
+      <div id="ship-end" aria-hidden="true"></div>
       <p class="display" id="st-title">The experiment continues</p>
       <p class="prompt" id="prompt" aria-label="second opinions welcome"><span class="pfx">&gt;&nbsp;</span><span id="pline"></span><span id="caret-end" aria-hidden="true"></span></p>
     </div>
@@ -884,7 +893,7 @@ void main(){
     fragmentShader: `
 precision highp float;
 uniform sampler2D uBg; uniform vec2 uRes; uniform vec3 uLight;
-uniform vec3 uTintA; uniform vec3 uTintB; uniform vec2 uYRange; uniform float uDark;
+uniform vec3 uTintA; uniform vec3 uTintB; uniform vec2 uYRange; uniform float uDark; uniform float uLift;
 varying vec3 vN; varying vec3 vEye; varying vec3 vWorld; varying float vY;
 float rnd(vec2 p){ return fract(sin(dot(p, vec2(12.9898, 78.233))) * 43758.5453); }
 void main(){
@@ -906,7 +915,7 @@ void main(){
   vec3 tint = mix(uTintB, uTintA, g);
   vec3 dk = col * 1.3; dk = mix(dk, dk * tint * 2.6, 0.65) + tint * (0.10 + 0.42 * thick);
   vec3 lt = col * mix(vec3(1.0), tint * 1.25, 0.55 + 0.4 * thick);      // 亮底：按厚度吸收
-  col = mix(lt, dk, uDark);
+  col = mix(lt, dk, uDark) + tint * uLift * (0.55 + 0.45 * ndv);
   vec3 V = -e;
   vec3 L = normalize(uLight - vWorld);
   float spec = pow(max(dot(n, normalize(L + V)), 0.0), 220.0);
@@ -920,7 +929,7 @@ void main(){
     uniforms: {
       uBg: { value: null }, uRes: { value: new THREE.Vector2(1, 1) }, uLight: { value: new THREE.Vector3(4, 6, 8) },
       uTintA: { value: new THREE.Color(0.0, 0.80, 0.56) }, uTintB: { value: new THREE.Color(0.0, 0.40, 0.52) },
-      uYRange: { value: new THREE.Vector2(-1.2, 1.2) }, uDark: { value: 1 },
+      uYRange: { value: new THREE.Vector2(-1.2, 1.2) }, uDark: { value: 1 }, uLift: { value: 0 },
     },
   });
 
@@ -960,24 +969,62 @@ void main(){
   scene.add(glassEnd);
   const glassEndEl = document.getElementById('glass-end');
 
-  /* 方块光标：静止时是强调色实体；放大吞屏后表面变成屏幕空间的星流 */
-  const caretShape = new THREE.Shape();
-  { const w = 0.6, h = 1.1, r = 0.11, x = -w / 2, y = -h / 2;
-    caretShape.moveTo(x + r, y); caretShape.lineTo(x + w - r, y); caretShape.quadraticCurveTo(x + w, y, x + w, y + r);
-    caretShape.lineTo(x + w, y + h - r); caretShape.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
-    caretShape.lineTo(x + r, y + h); caretShape.quadraticCurveTo(x, y + h, x, y + h - r);
-    caretShape.lineTo(x, y + r); caretShape.quadraticCurveTo(x, y, x + r, y); }
-  const caretGeo = new THREE.ExtrudeGeometry(caretShape, { depth: 0.22, bevelEnabled: true, bevelThickness: 0.06, bevelSize: 0.06, bevelSegments: 8, curveSegments: 16 });
-  caretGeo.center();
-  const CARET_H = 1.22, CARET_W = 0.72;
+  /* ---- 飞船：圆润小火箭。首屏停泊，宣言区调头跃迁，结尾飞回停在提示符上方 ---- */
+  const lightU = { value: new THREE.Vector3(4, 6, 8) };
+  const solidMat = (hex, emit = 0) => new THREE.ShaderMaterial({
+    vertexShader: OBJ_VERT, side: THREE.DoubleSide,
+    fragmentShader: `precision highp float; uniform vec3 uCol; uniform vec3 uLight; uniform float uEmit;
+varying vec3 vN; varying vec3 vEye; varying vec3 vWorld;
+void main(){ vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n; vec3 e = normalize(vEye), V = -e;
+  vec3 L = normalize(uLight - vWorld);
+  float lamb = max(dot(n, normalize(vec3(0.35, 0.75, 0.55))), 0.0);
+  vec3 rgb = uCol * (0.40 + 0.60 * lamb);
+  rgb += pow(max(dot(n, normalize(L + V)), 0.0), 70.0) * 0.7;
+  rgb += pow(1.0 - abs(dot(n, e)), 5.0) * 0.30;
+  rgb += uCol * uEmit;
+  gl_FragColor = vec4(rgb, 1.0); }`,
+    uniforms: { uCol: { value: new THREE.Color(hex) }, uLight: lightU, uEmit: { value: emit } },
+  });
+  const mAccent = solidMat(0x00e5a0), mLight = solidMat(0xe6f4ee), mDark = solidMat(0x17332c), mWindow = solidMat(0xbffff0, 0.55);
+  const glassDS = new THREE.ShaderMaterial({ vertexShader: glassMat.vertexShader, fragmentShader: glassMat.fragmentShader, side: THREE.DoubleSide,
+    uniforms: { ...glassMat.uniforms, uLift: { value: 0.5 }, uTintA: { value: new THREE.Color(0.30, 0.98, 0.76) }, uTintB: { value: new THREE.Color(0.05, 0.62, 0.60) } } });   // 共享背景贴图/光源引用，机身更亮
+  const glowU = { value: 0 };
+  const glowMat = new THREE.ShaderMaterial({
+    transparent: true, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending,
+    vertexShader: `varying vec2 vUv; void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0); }`,
+    fragmentShader: `precision highp float; uniform float uGlow; varying vec2 vUv;
+void main(){ float d = distance(vUv, vec2(0.5)) * 2.0; float core = exp(-d * d * 9.0), halo = exp(-d * d * 2.2);
+  vec3 c = vec3(0.85, 1.0, 0.95) * core * 1.6 + vec3(0.0, 0.9, 0.63) * halo * 0.9; gl_FragColor = vec4(c * uGlow, 1.0); }`,
+    uniforms: { uGlow: glowU },
+  });
+  const lathe = (pts, seg = 48) => new THREE.LatheGeometry(new THREE.SplineCurve(pts.map(p => new THREE.Vector2(p[0], p[1]))).getPoints(44), seg);
+  const put = (g, geo, mat, pos = [0, 0, 0], rot = [0, 0, 0], scl = [1, 1, 1]) => { const m = new THREE.Mesh(geo, mat); m.position.set(...pos); m.rotation.set(...rot); m.scale.set(...scl); m.frustumCulled = false; m.layers.set(2); g.add(m); return m; };
+  const glowDisc = (g, y, r) => put(g, new THREE.PlaneGeometry(r * 2, r * 2), glowMat, [0, y, 0], [Math.PI / 2, 0, 0]);
+  const extr = (pts, depth) => { const sh = new THREE.Shape(); pts.forEach((p, i) => i ? sh.lineTo(p[0], p[1]) : sh.moveTo(p[0], p[1])); const g = new THREE.ExtrudeGeometry(sh, { depth, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012, bevelSegments: 2 }); g.translate(0, 0, -depth / 2); return g; };
 
+  function shipA() {            // 玻璃舱体 + 腰线 + 舷窗 + 三片尾翼
+    const g = new THREE.Group();
+    put(g, lathe([[0.001, 1.0], [0.13, 0.9], [0.26, 0.68], [0.33, 0.35], [0.34, 0.0], [0.30, -0.38], [0.22, -0.66]]), glassDS);
+    put(g, new THREE.TorusGeometry(0.338, 0.028, 12, 48), mAccent, [0, 0.02, 0], [Math.PI / 2, 0, 0]);
+    put(g, new THREE.SphereGeometry(0.115, 24, 18), mWindow, [0, 0.38, 0.27]);
+    put(g, new THREE.TorusGeometry(0.125, 0.022, 10, 32), mLight, [0, 0.38, 0.285], [0, 0, 0]);
+    const fin = extr([[0, 0.28], [0.40, -0.36], [0.40, -0.58], [0, -0.30]], 0.045);
+    for (let i = 0; i < 3; i++) { const h = new THREE.Group(); h.rotation.y = i * Math.PI * 2 / 3 + 0.5; put(h, fin, mAccent, [0.25, -0.36, 0]); g.add(h); }
+    put(g, new THREE.CylinderGeometry(0.15, 0.21, 0.16, 28), mDark, [0, -0.74, 0]);
+    glowDisc(g, -0.83, 0.42);
+    return { group: g, size: 1.95 };
+  }
+  const ship = shipA();
+  ship.group.visible = false; scene.add(ship.group);
+
+  /* 星流：全屏叠加层（预乘混合：黑底按 reveal 盖住画面，光线叠加在上面） */
   const portalMat = new THREE.ShaderMaterial({
-    vertexShader: OBJ_VERT, side: THREE.DoubleSide, transparent: true,
+    vertexShader: FS_VERT, depthTest: false, depthWrite: false, transparent: true,
+    blending: THREE.CustomBlending, blendSrc: THREE.OneFactor, blendDst: THREE.OneMinusSrcAlphaFactor,
     fragmentShader: `
 precision highp float;
-uniform vec2 uRes; uniform float uPhase; uniform float uT; uniform float uReveal; uniform float uOpacity;
-uniform vec3 uAccent; uniform vec3 uA; uniform vec3 uB; uniform vec3 uC; uniform vec3 uLight;
-varying vec3 vN; varying vec3 vEye; varying vec3 vWorld;
+uniform vec2 uRes; uniform float uPhase; uniform float uT; uniform float uReveal; uniform float uFlash;
+uniform vec3 uA; uniform vec3 uB; uniform vec3 uC;
 float h1(float n){ return fract(sin(n * 127.1) * 43758.5453123); }
 vec3 hyper(vec2 fc){
   vec2 u = (fc * 2.0 - uRes) / min(uRes.x, uRes.y);
@@ -1004,34 +1051,20 @@ vec3 hyper(vec2 fc){
 void main(){
   vec3 st = hyper(gl_FragCoord.xy);
   float reveal = clamp(uReveal, 0.0, 1.0);
-  float lum = dot(st, vec3(0.299, 0.587, 0.114));
-  vec3 base = mix(uAccent, vec3(0.0), smoothstep(0.0, 0.6, reveal));
-  vec3 rgb = base + st * reveal * smoothstep(0.0, 0.35, reveal);
-  vec3 n = normalize(vN); if (!gl_FrontFacing) n = -n;
-  vec3 e = normalize(vEye), V = -e;
-  vec3 L = normalize(uLight - vWorld);
-  float gloss = mix(1.0, smoothstep(0.1, 0.48, lum), reveal);
-  float lamb = max(dot(n, normalize(vec3(0.35, 0.75, 0.55))), 0.0);
-  rgb *= mix(0.50 + 0.50 * lamb, 1.0, reveal);
-  float spec = pow(max(dot(n, normalize(L + V)), 0.0), 90.0);
-  rgb += spec * 0.8 * gloss * (1.0 - smoothstep(0.0, 0.12, reveal));
-  float fr = pow(1.0 - abs(dot(n, e)), 6.0);
-  rgb += fr * 0.5 * smoothstep(-0.5, 0.5, dot(n, normalize(vec3(-1.0, 0.3, 1.0)))) * gloss;
-  if (uOpacity < 0.01) discard;
-  gl_FragColor = vec4(rgb, uOpacity);
+  vec3 rgb = st * reveal * smoothstep(0.0, 0.35, reveal);
+  vec2 u = (gl_FragCoord.xy * 2.0 - uRes) / min(uRes.x, uRes.y);
+  float r2 = dot(u, u);
+  rgb += vec3(0.78, 1.0, 0.92) * uFlash * exp(-r2 * mix(16.0, 0.9, uFlash));     // 跃迁瞬间的闪光
+  gl_FragColor = vec4(rgb, smoothstep(0.0, 0.6, reveal));
 }`,
     uniforms: {
-      uRes: { value: new THREE.Vector2(1, 1) }, uPhase: { value: 0 }, uT: { value: 0 }, uReveal: { value: 0 }, uOpacity: { value: 1 },
+      uRes: { value: new THREE.Vector2(1, 1) }, uPhase: { value: 0 }, uT: { value: 0 }, uReveal: { value: 0 }, uFlash: { value: 0 },
       uAccent: { value: new THREE.Color() },
       uA: { value: new THREE.Color(0.10, 0.95, 0.72) }, uB: { value: new THREE.Color(0.20, 0.62, 1.0) }, uC: { value: new THREE.Color(0.62, 0.38, 1.0) },
-      uLight: { value: new THREE.Vector3(4, 6, 8) },
+      uLight: lightU,
     },
   });
-  const caret = new THREE.Group();
-  const caretSpin = new THREE.Group();
-  const caretMesh = new THREE.Mesh(caretGeo, portalMat);
-  caretMesh.frustumCulled = false; caretMesh.renderOrder = 10; caretMesh.layers.set(1);
-  caretSpin.add(caretMesh); caret.add(caretSpin); scene.add(caret);
+  const shipEndEl = document.getElementById('ship-end');
 
   /* ---- 画廊：每张卡一块细分平面，对齐 DOM 槽；滚动卷曲在裁剪空间做，悬停用方块扩散揭示反面 ---- */
   const cardGeo = new THREE.PlaneGeometry(1, 1, 1, 24);
@@ -1360,15 +1393,15 @@ void main(){
     const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2, w: r.width, h: r.height, top: r.top, bottom: r.bottom };
   };
   function caretEndRect() {
-    if (!LITE) return rectC(caretEnd);
-    if (!ceOff) { const a = caretEnd.getBoundingClientRect(), b = stagePin.getBoundingClientRect(); ceOff = { x: a.left + a.width / 2 - b.left, y: a.top + a.height / 2 - b.top, h: a.height }; }
+    if (!LITE) return rectC(shipEndEl);
+    if (!ceOff) { const a = shipEndEl.getBoundingClientRect(), b = stagePin.getBoundingClientRect(); ceOff = { x: a.left + a.width / 2 - b.left, y: a.top + a.height / 2 - b.top, h: a.height }; }
     const top = stTop + clamp(sy - stTop, 0, Math.max(1, stH - VH)) - sy;      // sticky 舞台在屏幕上的顶边
     return { x: ceOff.x, y: top + ceOff.y, h: ceOff.h };
   }
 
   /* ---- 每帧 ---- */
   let lastTitleA = '', lastN = -1, lastPO = '', slow = 0;
-  let last = performance.now(), time = 0, caretScale = 0.3, started = false, titleShown = false, inPortal = false, lastMeasure = 0, curl = 0;
+  let last = performance.now(), time = 0, started = false, titleShown = false, inPortal = false, lastMeasure = 0, curl = 0;
   function frame(now) {
     const dt = Math.min(Math.max((now - last) / 1000, 0.001), 0.05); last = now; time += dt;
     if (themeDirty) syncTheme();
@@ -1396,7 +1429,7 @@ void main(){
     ptr.sx = damp(ptr.sx, ptr.x / W, 5, dt); ptr.sy = damp(ptr.sy, 1 - ptr.y / H, 5, dt);
     ptr.gx = damp(ptr.gx, ptr.x, 10, dt); ptr.gy = damp(ptr.gy, ptr.y, 10, dt);
     const lightX = (ptr.sx - 0.5) * 14, lightY = (ptr.sy - 0.5) * 9 + 2.5;
-    glassMat.uniforms.uLight.value.set(lightX, lightY, 7); portalMat.uniforms.uLight.value.set(lightX, lightY, 7);
+    glassMat.uniforms.uLight.value.set(lightX, lightY, 7); lightU.value.set(lightX, lightY, 7);
 
     /* 首屏大字：字母波浪 + 透字渐变 */
     if (letters.length && ptr.has && sy < H) {
@@ -1418,31 +1451,34 @@ void main(){
       heroTitle.style.setProperty('--gy', `${(ptr.gy - tr.top).toFixed(1)}px`);
     }
 
-    /* 宣言区：方块光标的编排 */
+    /* 宣言区：飞船调头 → 跃迁远去 → 星流 → 飞回停靠 */
     const k = worldH() / H;
-    const grow = sstep(0.0, 0.22, q), shrink = sstep(0.76, 1.0, q);
     const enter = sstep(stTop - H, stTop - H * 0.1, sy);
+    const turn = sstep(0.0, 0.09, q), jump = sstep(0.09, 0.20, q);
+    const back = sstep(0.76, 0.89, q), park = sstep(0.87, 1.0, q);
+    const starIn = sstep(0.10, 0.20, q), starOut = sstep(0.72, 0.85, q);
+    const reveal = starIn * (1 - starOut);
     const home = rectC(caretHome), end = caretEndRect();
-    const homeS = home.h * k / CARET_H, endS = Math.max(end.h, 8) * k / CARET_H;
-    const fullS = Math.hypot(worldH(), worldH() * W / H) * 1.5 / CARET_W;
-    const restS = q < 0.5 ? homeS : endS;
-    const targetS = mix(restS, fullS, grow * (1 - shrink));
-    caretScale = started ? damp(caretScale, targetS, 14, dt) : targetS;
-    const reveal = clamp((caretScale - restS) / (fullS - restS), 0, 1);
-    let cx = mix(home.x, W / 2, enter), cy = mix(home.y, H / 2, enter);
-    cx = mix(cx, end.x, shrink); cy = mix(cy, end.y, shrink);
+    const first = q < 0.5;
+    const away = jump * (1 - back);                                   // 1 = 飞到远处
+    const restS = (first ? home.h : end.h) * k / ship.size;
+    const sc = restS * Math.pow(0.012, away);
+    let cx, cy;
+    if (first) { cx = mix(home.x, W / 2, enter); cy = mix(home.y, H / 2, enter); }
+    else { cx = mix(W / 2, end.x, back); cy = mix(H / 2, end.y, back); }
+    const pose = first ? turn : 1 - park;                             // 0 = 停泊姿态，1 = 机尾朝向镜头
+    const idle = 1 - pose;
     const [wx, wy] = toWorld(cx, cy);
-    const landed = q > 0.5 ? 1 : 0;
-    const tilt = (1 - sstep(0.0, 0.12, reveal)) * (1 - landed * sstep(0.9, 1.0, shrink));
-    caret.position.set(wx, wy + Math.sin(time * 1.2) * 0.05 * tilt, 0);
-    caret.scale.setScalar(caretScale);
-    caret.visible = reveal > 0.001 || (cy > -200 && cy < H + 200);
-    const spin = q < 0.5 ? clamp(reveal / 0.4, 0, 1) * Math.PI * 2 : Math.PI * 2 + clamp((shrink - 0.6) / 0.4, 0, 1) * Math.PI * 2;
-    caretSpin.rotation.set(-0.28 * tilt, spin + (0.62 + Math.sin(time * 0.6) * 0.12) * tilt, 0.10 * tilt);
+    ship.group.position.set(wx, wy + Math.sin(time * 1.2) * 0.06 * idle, 0);
+    ship.group.scale.setScalar(sc);
+    ship.group.rotation.set(mix(0.18 + (ptr.sy - 0.5) * 0.2, -Math.PI / 2 + 0.10, pose), mix(0.55 + Math.sin(time * 0.5) * 0.18 + (ptr.sx - 0.5) * 0.5, 0, pose), mix(-0.5, 0, pose));
+    ship.group.visible = away < 0.985 && cy > -260 && cy < H + 260;
+    glowU.value = first ? turn * 0.55 + jump * 1.6 : back * (1 - park) * 1.2 + (1 - back) * 1.6;
+    const bell = (x, c, w) => Math.exp(-((x - c) / w) * ((x - c) / w));
+    portalMat.uniforms.uFlash.value = first ? bell(jump, 0.62, 0.2) * (jump > 0.02 ? 1 : 0) : bell(back, 0.3, 0.2) * 0.6 * (back > 0.02 && back < 0.98 ? 1 : 0);
     portalMat.uniforms.uReveal.value = reveal;
-    portalMat.uniforms.uT.value = sstep(0.08, 0.72, q);
+    portalMat.uniforms.uT.value = sstep(0.10, 0.62, q) * (1 - starOut * 0.5);
     portalMat.uniforms.uPhase.value = q * 9.0 + time * 0.22;
-    portalMat.uniforms.uOpacity.value = q >= 0.995 ? ((Math.floor(time / 0.53) % 2) ? 0 : 1) : 1;
     if ((reveal > 0.5) !== inPortal) { inPortal = reveal > 0.5; root.classList.toggle('in-portal', inPortal); }
 
     const titleA = sstep(0.14, 0.24, q) * (1 - sstep(0.62, 0.72, q));
@@ -1507,7 +1543,11 @@ void main(){
       renderer.setRenderTarget(null); renderer.clear();
       pass(compMat, null);
       renderer.clearDepth();
-      camera.layers.enableAll(); renderer.render(scene, camera);
+      camera.layers.set(0); renderer.render(scene, camera);
+      camera.layers.set(1); renderer.render(scene, camera);
+      if (reveal > 0.001 || portalMat.uniforms.uFlash.value > 0.01) pass(portalMat, null);
+      renderer.clearDepth();
+      camera.layers.set(2); renderer.render(scene, camera);               // 飞船画在星流上面
       started = true; requestAnimationFrame(frame); return;
     }
     renderer.setRenderTarget(sceneRT); renderer.clear();
@@ -1516,7 +1556,10 @@ void main(){
     camera.layers.set(0); renderer.render(scene, camera);               // 玻璃字
     flareMat.uniforms.uScene.value = sceneRT.texture; pass(flareMat, flareRT);   // 星芒只取玻璃高光，不吃图片里的白
     renderer.setRenderTarget(sceneRT);
-    camera.layers.set(1); renderer.render(scene, camera);               // 画廊卡片 + 方块光标
+    camera.layers.set(1); renderer.render(scene, camera);               // 画廊卡片 + 贴纸
+    if (reveal > 0.001 || portalMat.uniforms.uFlash.value > 0.01) pass(portalMat, sceneRT);
+    renderer.clearDepth();
+    camera.layers.set(2); renderer.render(scene, camera);               // 飞船画在星流上面
     finalMat.uniforms.uScene.value = sceneRT.texture; finalMat.uniforms.uFlare.value = flareRT.texture; finalMat.uniforms.uVel.value = vel.a.texture;
     finalMat.uniforms.uFlareK.value = 1 - reveal;
     pass(finalMat, null);
@@ -1524,6 +1567,7 @@ void main(){
     started = true;
     requestAnimationFrame(frame);
   }
+
 
   if (LITE) {
     /* 手机画廊用普通图片：跟手不掉帧；点按淡入反面，翻开后再点才走链接 */
