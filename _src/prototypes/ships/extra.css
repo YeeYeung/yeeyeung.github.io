@@ -1,0 +1,100 @@
+
+/* ============ v3：单画布管线（three.js）覆盖层 ============ */
+#gl { position: fixed; inset: 0; width: 100vw; height: 100vh; z-index: 0; display: none; pointer-events: none; }
+html.gl #gl { display: block; }
+#scroll { position: relative; z-index: 1; }
+html.virt #scroll { position: fixed; top: 0; left: 0; width: 100%; will-change: transform; }
+html.gl body { transition: none; }
+
+#glass-home { position: absolute; right: 5%; top: 16%; width: 52vw; height: 50vh; pointer-events: none; z-index: 0; }
+#caret-home { position: absolute; right: 11%; bottom: 16%; width: 46px; height: 84px; pointer-events: none; z-index: 0; }
+@media (max-width: 52rem) {
+  #glass-home { left: 6%; right: 10%; width: auto; top: 49%; height: 23vh; }
+  #caret-home { right: 8%; top: 74%; bottom: auto; width: 26px; height: 48px; }
+}
+
+/* 画廊图片由主画布绘制；DOM 槽只负责占位、边框和标签 */
+html.gl .gcard .stage { background: transparent; }
+html.js:not(.gl) .gcard .fallback { display: block; }
+.gcard { transform: none; }
+
+/* 宣言区：方块光标放大吞屏 → 星流 → 缩回提示符 */
+.statement { height: 460vh; }
+.stage-pin { position: sticky; top: 0; height: 100vh; height: 100svh; display: grid; place-items: center; text-align: center; overflow: hidden; }
+html.virt .stage-pin { position: absolute; left: 0; width: 100%; height: 100vh; will-change: transform; }
+.stage-pin > * { grid-area: 1 / 1; }
+#st-title { opacity: 0; color: #fff; padding: 0 var(--gutter); }
+.prompt { opacity: 0; white-space: nowrap; font-family: var(--font-mono); font-size: clamp(1rem, 2.2vw, 1.5rem); letter-spacing: .05em; color: var(--label-1); transition: color .25s; }
+.prompt .pfx { color: var(--accent); }
+#caret-end { display: inline-block; width: .62em; height: 1.15em; margin-left: .12em; vertical-align: text-bottom; }
+html.in-portal .prompt { color: #fff; }
+html.in-portal header, html.in-portal .hud-bottom { color: #fff; --label-1: #fff; --label-2: rgba(255,255,255,.62); --label-3: rgba(255,255,255,.34); }
+
+/* 无 WebGL / 减弱动效：静态版 */
+html:not(.gl) .statement { height: auto; }
+html:not(.gl) .stage-pin { position: static; height: auto; min-height: 60vh; gap: 2rem; align-content: center; }
+html:not(.gl) .stage-pin > * { grid-area: auto; }
+html:not(.gl) #st-title { opacity: 1; color: var(--label-1); }
+html:not(.gl) .prompt { opacity: 1; }
+html:not(.gl) #caret-end { background: var(--accent); }
+
+@media (max-width: 48rem) { .hud-bottom .geo { display: none; } }
+
+/* 触屏轻量路径：画廊用普通图片，点按淡入反面 */
+html.lite .gcard .fallback { display: block; }
+.gcard .hoverimg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; opacity: 0; transition: opacity .35s ease; }
+.gcard.flipped .hoverimg { opacity: 1; }
+@supports (height: 100lvh) { html.lite #gl { height: 100lvh; } }
+
+/* 画廊：12 列错落网格，卡片占 3–5 列并留白（不再两列铺满） */
+@media (min-width: 52rem) {
+  .gallery { grid-template-columns: repeat(12, 1fr); column-gap: 1.25rem; row-gap: 4.5rem; padding-bottom: 6rem; }
+  .gcol { display: contents; }
+  .g-brew { grid-column: 1 / span 5; grid-row: 1; }
+  .g-lswg { grid-column: 9 / span 3; grid-row: 1; margin-top: 5rem; }
+  .g-pubs { grid-column: 2 / span 3; grid-row: 2; }
+  .g-tool { grid-column: 7 / span 5; grid-row: 2; margin-top: 7rem; }
+  .g-wwzn { grid-column: 1 / span 3; grid-row: 3; margin-top: 3rem; }
+  .g-glum { grid-column: 6 / span 5; grid-row: 3; }
+  .gcard .cap .gname { font-size: clamp(.95rem, 1.35vw, 1.25rem); }
+}
+@media (max-width: 52rem) {
+  .gallery, .gcol { gap: 2.75rem; }
+  .g-lswg, .g-wwzn, .g-pubs { width: 64%; }
+  .g-lswg, .g-pubs { align-self: flex-end; }
+  .g-tool, .g-glum { width: 90%; }
+  .g-glum { align-self: flex-end; }
+}
+
+/* 页脚大字：整组居中，组内三行错位 */
+footer .display { width: fit-content; margin-left: auto; margin-right: auto; text-align: left; }
+footer .display .r { text-align: left; padding-left: 1.35em; }
+footer .display span:nth-child(3) { padding-left: .45em; }
+
+/* 宽屏：内容收进约 78rem 的居中版心（所有区块都用 --gutter 做左右边距，改这一处即可） */
+:root { --gutter: max(clamp(1rem, 4vw, 3.5rem), calc((100vw - 78rem) / 2)); }
+@media (min-width: 52rem) {
+  #glass-home { right: var(--gutter); width: min(52vw, 44rem); height: 54vh; top: 14%; }
+  #caret-home { right: calc(var(--gutter) + 4.5rem); }
+}
+
+/* 页底玻璃字「n+1」的锚点：垫在居中大字后面，比文字大一圈 */
+#glass-end { position: absolute; left: 50%; top: 41%; width: min(60vw, 50rem); height: 50vh; transform: translate(-50%, -50%); pointer-events: none; z-index: 0; }
+footer .display { position: relative; z-index: 1; text-shadow: 0 2px 26px rgba(0, 0, 0, .5); margin-top: 16vh; }
+@media (max-width: 52rem) { #glass-end { width: 92vw; height: 28vh; top: 41%; } footer .display { margin-top: 12vh; } }
+
+/* ===== 飞船原型 ===== */
+#caret-home { width: 150px; height: 150px; bottom: 10%; }
+@media (min-width: 52rem) { #caret-home { right: calc(var(--gutter) + 1.5rem); } }
+@media (max-width: 52rem) { #caret-home { width: 84px; height: 84px; right: 6%; top: 69%; bottom: auto; } }
+#ship-end { position: absolute; left: 50%; top: calc(50% - 10.5rem); width: 130px; height: 130px; margin-left: -65px; pointer-events: none; }
+@media (max-width: 52rem) { #ship-end { width: 84px; height: 84px; margin-left: -42px; top: calc(50% - 8rem); } }
+html.gl #caret-end { background: var(--accent); animation: caret-blink 1.06s steps(1) infinite; box-shadow: 0 0 14px rgba(var(--accent-glow), .55); }
+#proto-panel { position: fixed; left: 12px; top: 58px; z-index: 60; width: 232px; padding: 10px 12px; border-radius: 10px; background: rgba(12, 16, 15, .86); border: 1px solid rgba(255,255,255,.14); color: #e6e8e8; font: 12px/1.45 var(--font-sans); backdrop-filter: blur(8px); }
+#proto-panel fieldset { border: 0; padding: 0; margin: 0 0 8px; }
+#proto-panel legend { padding: 0; margin-bottom: 3px; color: rgba(230,232,232,.6); font-size: 11px; }
+#proto-panel label { display: block; cursor: pointer; padding: 2px 0; }
+#proto-panel input { accent-color: #00e5a0; margin-right: 4px; }
+#proto-panel textarea { width: 100%; background: rgba(255,255,255,.06); color: inherit; border: 1px solid rgba(255,255,255,.14); border-radius: 6px; padding: 5px 6px; font: inherit; resize: vertical; }
+#proto-panel .st { height: 14px; color: #00e5a0; font-size: 11px; margin-top: 3px; }
+@media (max-width: 52rem) { #proto-panel { width: 190px; font-size: 11px; opacity: .92; } }
